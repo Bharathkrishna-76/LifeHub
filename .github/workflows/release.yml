@@ -180,6 +180,10 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
           fi
+          if [ ! -f app/google-services.json ]; then
+            echo "::error::app/google-services.json is missing from the GitHub repository. Push app/google-services.json or add GOOGLE_SERVICES_JSON_BASE64 in Actions Secrets."
+            exit 1
+          fi
 
       - name: Build signed Release APK & AAB
         if: steps.meta.outputs.mode == 'release'
@@ -191,9 +195,15 @@ jobs:
           VERSION_NAME: ${{ steps.meta.outputs.version_name }}
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
         run: |
+          set -o pipefail
           echo "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          gradle :app:assembleRelease :app:bundleRelease --no-configuration-cache \
-            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8"
+          if ! gradle :app:assembleRelease :app:bundleRelease --no-configuration-cache --max-workers=2 --console=plain \
+            -Dorg.gradle.parallel=false \
+            -Dorg.gradle.jvmargs="-Xmx2560m -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8" 2>&1 | tee /tmp/gradle_build.log; then
+            ERR_SUMMARY=$(grep -E "What went wrong:|^> |^e: |Execution failed for task|OutOfMemoryError" /tmp/gradle_build.log | head -n 12 | tr '\n' ' ')
+            echo "::error::Gradle release build failed: ${ERR_SUMMARY:-Check step log for details.}"
+            exit 1
+          fi
 
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/${{ steps.meta.outputs.apk_filename }}"
@@ -205,6 +215,7 @@ jobs:
           VERSION_NAME: ${{ steps.meta.outputs.version_name }}
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
         run: |
+          set -o pipefail
           if [ ! -f debug.keystore ]; then
             if [ -f debug.keystore.base64 ]; then
               base64 --decode debug.keystore.base64 > debug.keystore
@@ -212,8 +223,13 @@ jobs:
               keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
             fi
           fi
-          gradle :app:assembleDebug --no-configuration-cache \
-            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8"
+          if ! gradle :app:assembleDebug --no-configuration-cache --max-workers=2 --console=plain \
+            -Dorg.gradle.parallel=false \
+            -Dorg.gradle.jvmargs="-Xmx2560m -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8" 2>&1 | tee /tmp/gradle_build.log; then
+            ERR_SUMMARY=$(grep -E "What went wrong:|^> |^e: |Execution failed for task|OutOfMemoryError" /tmp/gradle_build.log | head -n 12 | tr '\n' ' ')
+            echo "::error::Gradle debug build failed: ${ERR_SUMMARY:-Check step log for details.}"
+            exit 1
+          fi
 
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/${{ steps.meta.outputs.apk_filename }}"
