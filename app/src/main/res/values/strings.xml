@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">LifeHub</string>
+    <string name="tagline">Money, habits, goals &amp; flow — one hub.</string>
+    <string name="sign_in_google">Continue with Google</string>
+    <string name="signing_in">Signing in…</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_money">Money</string>
+    <string name="nav_habits">Habits</string>
+    <string name="nav_goals">Goals</string>
+    <string name="nav_plan">Plan</string>
+    <string name="dashboard_balance">Current Balance</string>
+    <string name="dashboard_monthly_expense">Monthly Spend</string>
+    <string name="dashboard_savings">Net Savings</string>
+    <string name="dashboard_money_score">Money Score</string>
+    <string name="dashboard_habits_today">Habit Rings</string>
+    <string name="dashboard_goals_progress">Goals Progress</string>
+    <string name="dashboard_quick_actions">Quick Actions</string>
+    <string name="monthly_wrapped">Monthly Wrapped</string>
+    <string name="achievements_title">Achievements</string>
+    <string name="profile_title">Profile &amp; Settings</string>
+    <string name="export_data">Export Data (CSV)</string>
+    <string name="share_wrapped">Share Wrapped Card</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="load_older">Load Older Transactions</string>
+    <string name="retry">Retry</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="add_transaction">Add Transaction</string>
+    <string name="add_habit">New Habit</string>
+    <string name="add_goal">New Savings Goal</string>
+    <string name="add_task">New Task</string>
+    <string name="add_reminder">New Reminder</string>
+    <string name="reminder_channel_name">Bill &amp; EMI Reminders</string>
+    <string name="reminder_channel_desc">Notifications for upcoming bills, EMIs, rent, and subscriptions.</string>
+</resources>

@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document stored under /users/{userId}/profile/main.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "User display name (1-60 chars)." },
+        "email": { "type": "string", "description": "Optional user email address." },
+        "photoUrl": { "type": "string", "description": "Optional profile photo URL." },
+        "monthlyBudget": { "type": "number", "description": "Monthly spending budget target." },
+        "currencySymbol": { "type": "string", "description": "Preferred currency symbol (e.g., ₹, $)." },
+        "totalXp": { "type": "integer", "description": "Total XP accumulated from achievements." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "displayName", "monthlyBudget", "currencySymbol", "totalXp", "createdAt", "updatedAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Expense or income transaction record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "title": { "type": "string", "description": "Transaction title (1-80 chars)." },
+        "amount": { "type": "number", "description": "Positive monetary amount." },
+        "type": { "type": "string", "enum": ["EXPENSE", "INCOME"], "description": "Transaction direction." },
+        "category": {
+          "type": "string",
+          "enum": ["FOOD", "TRAVEL", "SHOPPING", "BILLS", "ENTERTAINMENT", "HEALTH", "EDUCATION", "OTHERS", "SALARY", "FREELANCE", "INVESTMENT"],
+          "description": "Expense or income category."
+        },
+        "monthKey": { "type": "string", "description": "YYYY-MM month partition key." },
+        "timestampEpochMs": { "type": "integer", "description": "Epoch milliseconds of transaction date." },
+        "note": { "type": "string", "description": "Optional note (0-240 chars)." },
+        "isTripOrEvent": { "type": "boolean", "description": "Whether this transaction belongs to a separate trip or event ledger." },
+        "eventName": { "type": "string", "description": "Optional trip or event label (e.g., Goa Trip, Wedding, Concert)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "amount", "type", "category", "monthKey", "timestampEpochMs", "createdAt", "updatedAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Daily habit with streak metrics and bounded completion date keys.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "title": { "type": "string", "description": "Habit title (1-60 chars)." },
+        "iconKey": { "type": "string", "description": "Icon identifier." },
+        "colorHex": { "type": "string", "description": "Accent hex color." },
+        "targetDaysPerWeek": { "type": "integer", "description": "Target days per week (1-7)." },
+        "currentStreak": { "type": "integer", "description": "Current consecutive days." },
+        "longestStreak": { "type": "integer", "description": "Best streak achieved." },
+        "completedDates": { "type": "array", "description": "Bounded list of YYYY-MM-DD completion date strings." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "iconKey", "colorHex", "targetDaysPerWeek", "currentStreak", "longestStreak", "completedDates", "createdAt", "updatedAt"]
+    },
+    "SavingsGoal": {
+      "title": "SavingsGoal",
+      "description": "Crowdfunding-style savings goal.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "title": { "type": "string", "description": "Goal title (1-60 chars)." },
+        "category": { "type": "string", "description": "Goal preset icon/category." },
+        "targetAmount": { "type": "number", "description": "Target savings amount." },
+        "savedAmount": { "type": "number", "description": "Amount saved so far." },
+        "completed": { "type": "boolean", "description": "Whether the goal reached 100%." },
+        "targetMonth": { "type": "string", "description": "Optional target month label." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "category", "targetAmount", "savedAmount", "completed", "targetMonth", "createdAt", "updatedAt"]
+    },
+    "TaskItem": {
+      "title": "TaskItem",
+      "description": "Kanban productivity task item.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "title": { "type": "string", "description": "Task title (1-100 chars)." },
+        "cadence": { "type": "string", "enum": ["DAILY", "WEEKLY"], "description": "Daily or weekly task." },
+        "priority": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"], "description": "Task priority." },
+        "status": { "type": "string", "enum": ["TODO", "IN_PROGRESS", "DONE"], "description": "Kanban column status." },
+        "dueDateEpochMs": { "type": "integer", "description": "Due date epoch ms." },
+        "recurring": { "type": "boolean", "description": "Whether task recurs." },
+        "notes": { "type": "string", "description": "Optional task notes." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "cadence", "priority", "status", "dueDateEpochMs", "recurring", "createdAt", "updatedAt"]
+    },
+    "ReminderItem": {
+      "title": "ReminderItem",
+      "description": "Bill, EMI, rent, or subscription reminder.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "title": { "type": "string", "description": "Reminder title (1-80 chars)." },
+        "category": { "type": "string", "enum": ["BILL", "EMI", "RENT", "SUBSCRIPTION"], "description": "Reminder category." },
+        "amount": { "type": "number", "description": "Expected payment amount." },
+        "dueDateEpochMs": { "type": "integer", "description": "Due date epoch milliseconds." },
+        "recurringMonthly": { "type": "boolean", "description": "Whether reminder repeats monthly." },
+        "paid": { "type": "boolean", "description": "Whether paid for the current cycle." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "title", "category", "amount", "dueDateEpochMs", "recurringMonthly", "paid", "createdAt", "updatedAt"]
+    },
+    "AchievementRecord": {
+      "title": "AchievementRecord",
+      "description": "Unlocked gaming badge and XP award.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "code": { "type": "string", "description": "Achievement code identifier." },
+        "xpAwarded": { "type": "integer", "description": "XP awarded for unlocking." },
+        "unlocked": { "type": "boolean", "description": "Whether unlocked." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "code", "xpAwarded", "unlocked", "createdAt", "updatedAt"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "Synced user app settings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID." },
+        "themeMode": { "type": "string", "enum": ["SYSTEM", "DARK", "LIGHT"], "description": "Theme preference." },
+        "notificationsEnabled": { "type": "boolean", "description": "Local reminder notification toggle." },
+        "currencySymbol": { "type": "string", "description": "Currency symbol." },
+        "monthlyBudget": { "type": "number", "description": "Monthly budget target." },
+        "separateTripEventLedger": { "type": "boolean", "description": "Exclude trip and event expenses from daily activity totals." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp())." }
+      },
+      "required": ["userId", "themeMode", "notificationsEnabled", "currencySymbol", "monthlyBudget", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/profile/{docId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile document."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User-scoped financial transactions partitioned by month."
+    },
+    "/users/{userId}/habits/{habitId}": {
+      "schema": { "$ref": "#/entities/Habit" },
+      "description": "User-scoped daily habits and streaks."
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/SavingsGoal" },
+      "description": "User-scoped savings goals."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/TaskItem" },
+      "description": "User-scoped Kanban tasks."
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": { "$ref": "#/entities/ReminderItem" },
+      "description": "User-scoped bill, EMI, rent, and subscription reminders."
+    },
+    "/users/{userId}/achievements/{achievementId}": {
+      "schema": { "$ref": "#/entities/AchievementRecord" },
+      "description": "User-scoped unlocked achievements and XP."
+    },
+    "/users/{userId}/settings/{docId}": {
+      "schema": { "$ref": "#/entities/UserSettings" },
+      "description": "User-scoped theme and notification settings."
+    }
+  }
+}

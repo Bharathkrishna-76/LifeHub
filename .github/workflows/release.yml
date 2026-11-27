@@ -1,0 +1,254 @@
+name: Build & Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.0.2)'
+        required: true
+        default: 'v1.0.2'
+        type: string
+      build_type:
+        description: 'Build variant (auto uses release if signing secrets exist, else signed debug APK)'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - release
+          - debug
+      release_notes:
+        description: 'Optional in-app release notes (leave blank to auto-generate from git commits)'
+        required: false
+        default: ''
+        type: string
+      minimum_version_code:
+        description: 'Optional minimum_version_code for mandatory updates (leave blank to keep existing)'
+        required: false
+        default: ''
+        type: string
+      prerelease:
+        description: 'Mark as pre-release (skips auto-publishing to Firebase Remote Config)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build APK, Publish Release & Sync Firebase Remote Config
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Accept Android SDK licenses
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDK_MANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDK_MANAGER" ]; then
+            yes | "$SDK_MANAGER" --licenses > /dev/null 2>&1 || true
+          fi
+
+      - name: Resolve version, signing mode, and release notes
+        id: meta
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag_name }}
+          INPUT_BUILD_TYPE: ${{ github.event.inputs.build_type }}
+          INPUT_RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+          HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+          HAS_STORE_PASS: ${{ secrets.STORE_PASSWORD != '' }}
+          HAS_KEY_PASS: ${{ secrets.KEY_PASSWORD != '' }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            REQUESTED_TYPE="auto"
+          else
+            TAG="${INPUT_TAG}"
+            REQUESTED_TYPE="${INPUT_BUILD_TYPE:-auto}"
+          fi
+
+          # Strip leading 'v' for Android versionName (e.g. v1.2.3 -> 1.2.3)
+          VERSION_NAME="${TAG#v}"
+
+          # Compute monotonic integer versionCode from semver (major*10000 + minor*100 + patch)
+          if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            MAJOR=$((10#${BASH_REMATCH[1]}))
+            MINOR=$((10#${BASH_REMATCH[2]}))
+            PATCH=$((10#${BASH_REMATCH[3]}))
+            VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          elif [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+) ]]; then
+            MAJOR=$((10#${BASH_REMATCH[1]}))
+            MINOR=$((10#${BASH_REMATCH[2]}))
+            VERSION_CODE=$((MAJOR * 10000 + MINOR * 100))
+          else
+            VERSION_CODE="${GITHUB_RUN_NUMBER}"
+          fi
+          if [ "$VERSION_CODE" -lt 1 ]; then
+            VERSION_CODE=1
+          fi
+
+          if [ "$HAS_KEYSTORE" = "true" ] && [ "$HAS_STORE_PASS" = "true" ] && [ "$HAS_KEY_PASS" = "true" ]; then
+            SECRETS_READY="true"
+          else
+            SECRETS_READY="false"
+          fi
+
+          if [ "$REQUESTED_TYPE" = "release" ] && [ "$SECRETS_READY" != "true" ]; then
+            echo "::error::Release signing secrets missing. Configure KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD in Settings -> Secrets and variables -> Actions (see GITHUB_RELEASE.md)."
+            exit 1
+          fi
+
+          if [ "$REQUESTED_TYPE" = "debug" ]; then
+            MODE="debug"
+          elif [ "$SECRETS_READY" = "true" ]; then
+            MODE="release"
+          else
+            MODE="debug"
+          fi
+
+          APK_FILENAME="LifeHub-${TAG}-${MODE}.apk"
+          APK_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_FILENAME}"
+
+          NOTES="${INPUT_RELEASE_NOTES}"
+          if [ -z "$NOTES" ]; then
+            PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
+            if [ -n "$PREV_TAG" ]; then
+              NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"• %s" -n 8)
+            else
+              NOTES=$(git log -n 5 --pretty=format:"• %s")
+            fi
+          fi
+          if [ -z "$NOTES" ]; then
+            NOTES="• Performance improvements and bug fixes."
+          fi
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
+          echo "apk_filename=${APK_FILENAME}" >> "$GITHUB_OUTPUT"
+          echo "apk_download_url=${APK_DOWNLOAD_URL}" >> "$GITHUB_OUTPUT"
+          {
+            echo "release_notes<<EOF_NOTES"
+            echo "$NOTES"
+            echo "EOF_NOTES"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved tag=${TAG}, versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}, buildMode=${MODE}"
+
+      - name: Prepare environment and Firebase config
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ ! -f .env ]; then
+            touch .env
+          fi
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
+          fi
+
+      - name: Build signed Release APK & AAB
+        if: steps.meta.outputs.mode == 'release'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PATH: ${{ runner.temp }}/my-upload-key.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_NAME: ${{ steps.meta.outputs.version_name }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          gradle :app:assembleRelease :app:bundleRelease --no-configuration-cache
+
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/${{ steps.meta.outputs.apk_filename }}"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/LifeHub-${{ steps.meta.outputs.tag }}-release.aab"
+
+      - name: Build installable Debug-Signed APK (fallback when release secrets are not configured)
+        if: steps.meta.outputs.mode == 'debug'
+        env:
+          VERSION_NAME: ${{ steps.meta.outputs.version_name }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+        run: |
+          if [ ! -f debug.keystore ]; then
+            if [ -f debug.keystore.base64 ]; then
+              base64 --decode debug.keystore.base64 > debug.keystore
+            else
+              keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            fi
+          fi
+          gradle :app:assembleDebug --no-configuration-cache
+
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/${{ steps.meta.outputs.apk_filename }}"
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Clean up temporary keystore files
+        if: always()
+        run: |
+          rm -f "${{ runner.temp }}/my-upload-key.jks" debug.keystore
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: LifeHub ${{ steps.meta.outputs.tag }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          generate_release_notes: true
+          body: |
+            ### LifeHub ${{ steps.meta.outputs.tag }} (Android)
+
+            - **Build Variant:** `${{ steps.meta.outputs.mode }}`
+            - **Version:** `${{ steps.meta.outputs.version_name }}` (code `${{ steps.meta.outputs.version_code }}`)
+
+            #### What's New
+            ${{ steps.meta.outputs.release_notes }}
+
+            #### Installation
+            1. Download `${{ steps.meta.outputs.apk_filename }}` below on your Android device.
+            2. Open the downloaded `.apk` and allow installation if prompted.
+            3. Existing users will also receive this update automatically inside the app.
+          files: |
+            dist/*
+
+      - name: Auto-Publish Firebase Remote Config
+        if: github.event.inputs.prerelease != 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          LATEST_VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+          LATEST_VERSION_NAME: ${{ steps.meta.outputs.version_name }}
+          APK_DOWNLOAD_URL: ${{ steps.meta.outputs.apk_download_url }}
+          RELEASE_NOTES: ${{ steps.meta.outputs.release_notes }}
+          MINIMUM_VERSION_CODE: ${{ github.event.inputs.minimum_version_code }}
+          UPDATE_ENABLED: "true"
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::notice::Skipped Firebase Remote Config auto-sync because FIREBASE_SERVICE_ACCOUNT secret is not set. Add it in Settings -> Secrets and variables -> Actions to enable automatic Firebase Remote Config updates on every release (see UPDATE_RELEASE_GUIDE.md)."
+            exit 0
+          fi
+          node scripts/publish-remote-config.mjs

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_app_display_name">Daily Expenses Tracker</string>
+    <string name="update_optional_title">New Update Available</string>
+    <string name="update_mandatory_title">Update Required</string>
+    <string name="update_mandatory_subtitle">Your installed version is no longer supported. Please update to keep using Daily Expenses Tracker safely with your data intact.</string>
+    <string name="update_optional_subtitle">A newer version is ready with improvements and fixes. Your expense records and account remain safe.</string>
+    <string name="update_current_version_label">Installed</string>
+    <string name="update_latest_version_label">Latest</string>
+    <string name="update_release_notes_header">What\'s New</string>
+    <string name="update_release_notes_fallback">Bug fixes, reliability improvements, and performance enhancements.</string>
+    <string name="update_btn_download">Download Update</string>
+    <string name="update_btn_update_now">Update Now</string>
+    <string name="update_btn_install">Install Update</string>
+    <string name="update_btn_remind_later">Remind Me Later</string>
+    <string name="update_btn_retry">Retry</string>
+    <string name="update_btn_allow_install">Allow App Installs</string>
+    <string name="update_btn_cancel_download">Cancel Download</string>
+    <string name="update_status_checking">Checking for updates…</string>
+    <string name="update_status_downloading">Downloading update…</string>
+    <string name="update_status_verifying">Verifying APK integrity and signature…</string>
+    <string name="update_status_ready">Download verified and ready to install.</string>
+    <string name="update_status_permission_needed">Android requires permission for this app to install updates. Enable \"Allow from this source\", then return here to finish installing.</string>
+    <string name="update_status_up_to_date">You are on the latest version.</string>
+    <string name="update_settings_section_title">App Updates</string>
+    <string name="update_settings_check_button">Check for Updates</string>
+    <string name="update_settings_version_format">Installed version %1$s (build %2$d)</string>
+    <string name="update_data_safe_note">All expense records, settings, and your signed-in account stay preserved during update.</string>
+    <string name="update_icon_cd">App update</string>
+</resources>

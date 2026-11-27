@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="shared_wrapped" path="shared/" />
+    <cache-path name="data_exports" path="exports/" />
+    <cache-path name="apk_updates" path="updates/" />
+</paths>

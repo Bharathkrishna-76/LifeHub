@@ -1,0 +1,46 @@
+{
+  "parameters": {
+    "latest_version_code": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "description": "Integer Android versionCode of the newest APK release.",
+      "valueType": "NUMBER"
+    },
+    "latest_version_name": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Human-readable version name displayed to users (e.g. 1.0.2).",
+      "valueType": "STRING"
+    },
+    "apk_download_url": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Direct HTTPS GitHub Releases .apk asset URL.",
+      "valueType": "STRING"
+    },
+    "release_notes": {
+      "defaultValue": {
+        "value": "Bug fixes and performance improvements."
+      },
+      "description": "Changelog displayed in the in-app update dialog.",
+      "valueType": "STRING"
+    },
+    "update_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "description": "Master switch to enable or pause in-app update prompts.",
+      "valueType": "BOOLEAN"
+    },
+    "minimum_version_code": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "description": "Versions strictly below this build number see a mandatory update screen.",
+      "valueType": "NUMBER"
+    }
+  }
+}

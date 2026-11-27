@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ts_brand_name">TripSplit</string>
+    <string name="ts_mode_daily">Daily</string>
+    <string name="ts_mode_switch_to_tripsplit">TripSplit</string>
+    <string name="ts_mode_switch_to_daily_cd">Switch back to Daily Expenses</string>
+    <string name="ts_mode_switch_to_tripsplit_cd">Open TripSplit travel mode</string>
+    <string name="ts_toggle_theme_cd">Toggle TripSplit light or dark theme</string>
+    <string name="ts_open_drawer_cd">Open TripSplit menu</string>
+    <string name="ts_share_trip_cd">Share trip summary</string>
+    <string name="ts_favorite_trip_cd">Toggle favorite trip</string>
+
+    <string name="ts_nav_overview">Overview</string>
+    <string name="ts_nav_trips">Trips</string>
+    <string name="ts_nav_expenses">Ledger</string>
+    <string name="ts_nav_squad">Squad</string>
+
+    <string name="ts_fab_add_expense">Add Expense</string>
+    <string name="ts_action_create_trip">New Trip</string>
+    <string name="ts_action_top_up_wallet">Trip Wallet</string>
+    <string name="ts_action_settle_up">Settle Up</string>
+    <string name="ts_action_add_traveler">Invite</string>
+    <string name="ts_action_view_expenses">View All</string>
+
+    <string name="ts_section_featured_trip">Active Trip</string>
+    <string name="ts_section_budget_spend">Financial Overview</string>
+    <string name="ts_section_common_wallet">Common Wallet</string>
+    <string name="ts_section_group_balances">Group Balances</string>
+    <string name="ts_section_who_owes_whom">Who Owes Whom</string>
+    <string name="ts_section_spending_breakdown">Spending Breakdown</string>
+    <string name="ts_section_recent_expenses">Recent Activity</string>
+    <string name="ts_section_route_preview">Route</string>
+    <string name="ts_section_quick_actions">Quick Actions</string>
+
+    <string name="ts_empty_title">Plan your first trip</string>
+    <string name="ts_empty_subtitle">Track shared travel budgets, split group bills, and manage a common trip wallet separately from your daily expenses.</string>
+    <string name="ts_empty_cta">Create Trip</string>
+    <string name="ts_all_settled">All balances are settled</string>
+    <string name="ts_no_expenses_yet">No trip expenses yet</string>
+    <string name="ts_no_wallet_entries">No wallet deposits yet</string>
+</resources>
