@@ -20,10 +20,29 @@ function parseServiceAccount(raw) {
   const jsonText = trimmed.startsWith("{")
     ? trimmed
     : Buffer.from(trimmed, "base64").toString("utf8");
-  const parsed = JSON.parse(jsonText);
-  if (!parsed.client_email || !parsed.private_key || !parsed.project_id) {
-    throw new Error("Service account JSON is missing client_email, private_key, or project_id.");
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (err) {
+    throw new Error(
+      `FIREBASE_SERVICE_ACCOUNT is not valid JSON (${err.message}). Paste the entire Service Account private key JSON from Firebase Console -> Project Settings -> Service accounts -> Generate new private key.`
+    );
   }
+
+  if (parsed.project_info && parsed.client) {
+    throw new Error(
+      "FIREBASE_SERVICE_ACCOUNT contains google-services.json instead of a Service Account Private Key JSON. Open Firebase Console -> Project Settings -> Service accounts -> Generate new private key and paste that JSON."
+    );
+  }
+
+  if (!parsed.client_email || !parsed.private_key || !parsed.project_id) {
+    throw new Error(
+      "Service account JSON is missing client_email, private_key, or project_id."
+    );
+  }
+
+  parsed.private_key = String(parsed.private_key).replace(/\\n/g, "\n");
   return parsed;
 }
 
@@ -72,7 +91,10 @@ async function getAccessToken(serviceAccount) {
   });
 
   if (!resp.ok) {
-    throw new Error(`OAuth token exchange failed with HTTP ${resp.status}.`);
+    const errBody = await resp.text();
+    throw new Error(
+      `OAuth token exchange failed with HTTP ${resp.status}: ${errBody.slice(0, 300)}`
+    );
   }
   const data = await resp.json();
   if (!data.access_token) {
@@ -118,6 +140,12 @@ async function main() {
   const serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
   const projectId = resolveProjectId(serviceAccount);
 
+  if (serviceAccount.project_id !== projectId) {
+    console.warn(
+      `::warning::Service account project_id (${serviceAccount.project_id}) differs from app/google-services.json project_id (${projectId}).`
+    );
+  }
+
   const latestVersionCode = Number.parseInt(process.env.LATEST_VERSION_CODE || "", 10);
   if (!Number.isFinite(latestVersionCode) || latestVersionCode < 1) {
     throw new Error("LATEST_VERSION_CODE must be a positive integer.");
@@ -131,8 +159,11 @@ async function main() {
   const apkDownloadUrl = (process.env.APK_DOWNLOAD_URL || "").trim();
   validateDownloadUrl(apkDownloadUrl);
 
-  const releaseNotes = (process.env.RELEASE_NOTES || "").trim() || `Version ${latestVersionName} improvements and bug fixes.`;
-  const updateEnabled = (process.env.UPDATE_ENABLED || "true").trim().toLowerCase() === "true";
+  const releaseNotes =
+    (process.env.RELEASE_NOTES || "").trim() ||
+    `Version ${latestVersionName} improvements and bug fixes.`;
+  const updateEnabled =
+    (process.env.UPDATE_ENABLED || "true").trim().toLowerCase() === "true";
   const requestedMinVersionRaw = (process.env.MINIMUM_VERSION_CODE || "").trim();
 
   const accessToken = await getAccessToken(serviceAccount);
@@ -143,17 +174,24 @@ async function main() {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Accept-Encoding": "gzip",
     },
   });
 
-  if (!getResp.ok) {
-    throw new Error(`Failed to read Firebase Remote Config (HTTP ${getResp.status}). Check that the service account has the Firebase Remote Config Admin role.`);
-  }
+  let etag = "*";
+  let template = { parameters: {} };
 
-  const etag = getResp.headers.get("etag") || "*";
-  const template = await getResp.json();
-  template.parameters = template.parameters || {};
+  if (getResp.status === 404) {
+    console.log("No existing Remote Config template found; creating initial template.");
+  } else if (!getResp.ok) {
+    const errText = await getResp.text();
+    throw new Error(
+      `Failed to read Firebase Remote Config for project "${projectId}" (HTTP ${getResp.status}): ${errText.slice(0, 300)}`
+    );
+  } else {
+    etag = getResp.headers.get("etag") || "*";
+    template = (await getResp.json()) || {};
+    template.parameters = template.parameters || {};
+  }
 
   // Preserve existing minimum_version_code unless explicitly overridden in workflow input
   const existingMinCode = template.parameters.minimum_version_code?.defaultValue?.value || "1";
@@ -205,7 +243,7 @@ async function main() {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json; UTF-8",
+      "Content-Type": "application/json; charset=utf-8",
       "If-Match": etag,
     },
     body: JSON.stringify(template),
@@ -213,7 +251,9 @@ async function main() {
 
   if (!putResp.ok) {
     const errText = await putResp.text();
-    throw new Error(`Failed to publish Firebase Remote Config (HTTP ${putResp.status}): ${errText.slice(0, 300)}`);
+    throw new Error(
+      `Failed to publish Firebase Remote Config (HTTP ${putResp.status}): ${errText.slice(0, 300)}`
+    );
   }
 
   console.log(
@@ -223,6 +263,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`Remote Config auto-publish failed: ${err.message}`);
+  console.error(`::error::Remote Config auto-publish failed: ${err.message}`);
   process.exit(1);
 });

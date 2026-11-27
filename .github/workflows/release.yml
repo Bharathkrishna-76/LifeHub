@@ -44,6 +44,10 @@ jobs:
     name: Build APK, Publish Release & Sync Firebase Remote Config
     runs-on: ubuntu-latest
 
+    env:
+      JAVA_TOOL_OPTIONS: "-Djava.awt.headless=true"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,9 +68,13 @@ jobs:
       - name: Accept Android SDK licenses
         run: |
           SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          SDK_MANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
-          if [ -x "$SDK_MANAGER" ]; then
-            yes | "$SDK_MANAGER" --licenses > /dev/null 2>&1 || true
+          if [ -n "$SDK_ROOT" ]; then
+            mkdir -p "$SDK_ROOT/licenses"
+            for mgr in "$SDK_ROOT"/cmdline-tools/*/bin/sdkmanager "$SDK_ROOT"/tools/bin/sdkmanager; do
+              if [ -x "$mgr" ]; then
+                yes | "$mgr" --licenses > /dev/null 2>&1 || true
+              fi
+            done
           fi
 
       - name: Resolve version, signing mode, and release notes
@@ -85,6 +93,13 @@ jobs:
           else
             TAG="${INPUT_TAG}"
             REQUESTED_TYPE="${INPUT_BUILD_TYPE:-auto}"
+          fi
+
+          # Trim surrounding whitespace and validate release tag
+          TAG="$(echo "$TAG" | xargs)"
+          if [ -z "$TAG" ]; then
+            echo "::error::Release tag cannot be empty."
+            exit 1
           fi
 
           # Strip leading 'v' for Android versionName (e.g. v1.2.3 -> 1.2.3)
@@ -133,9 +148,9 @@ jobs:
           if [ -z "$NOTES" ]; then
             PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
             if [ -n "$PREV_TAG" ]; then
-              NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"• %s" -n 8)
+              NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"• %s" -n 8 || true)
             else
-              NOTES=$(git log -n 5 --pretty=format:"• %s")
+              NOTES=$(git log -n 5 --pretty=format:"• %s" || true)
             fi
           fi
           if [ -z "$NOTES" ]; then
@@ -177,7 +192,8 @@ jobs:
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          gradle :app:assembleRelease :app:bundleRelease --no-configuration-cache
+          gradle :app:assembleRelease :app:bundleRelease --no-configuration-cache \
+            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8"
 
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/${{ steps.meta.outputs.apk_filename }}"
@@ -196,7 +212,8 @@ jobs:
               keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
             fi
           fi
-          gradle :app:assembleDebug --no-configuration-cache
+          gradle :app:assembleDebug --no-configuration-cache \
+            -Dorg.gradle.jvmargs="-Xmx3g -XX:+UseG1GC -Djava.awt.headless=true -Dfile.encoding=UTF-8"
 
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/${{ steps.meta.outputs.apk_filename }}"
