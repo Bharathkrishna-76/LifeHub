@@ -141,9 +141,8 @@ jobs:
             MODE="debug"
           fi
 
-          RELEASE_REPO="Bharathkrishna-76/LifeHubTracker"
           APK_FILENAME="LifeHub-${TAG}-${MODE}.apk"
-          APK_DOWNLOAD_URL="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/${APK_FILENAME}"
+          APK_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_FILENAME}"
 
           NOTES="${INPUT_RELEASE_NOTES}"
           if [ -z "$NOTES" ]; then
@@ -162,7 +161,6 @@ jobs:
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
           echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
           echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
-          echo "release_repo=${RELEASE_REPO}" >> "$GITHUB_OUTPUT"
           echo "apk_filename=${APK_FILENAME}" >> "$GITHUB_OUTPUT"
           echo "apk_download_url=${APK_DOWNLOAD_URL}" >> "$GITHUB_OUTPUT"
           {
@@ -170,7 +168,7 @@ jobs:
             echo "$NOTES"
             echo "EOF_NOTES"
           } >> "$GITHUB_OUTPUT"
-          echo "Resolved tag=${TAG}, versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}, buildMode=${MODE}, releaseRepo=${RELEASE_REPO}"
+          echo "Resolved tag=${TAG}, versionName=${VERSION_NAME}, versionCode=${VERSION_CODE}, buildMode=${MODE}"
 
       - name: Prepare environment and Firebase config
         env:
@@ -259,44 +257,14 @@ jobs:
         run: |
           rm -f "${{ runner.temp }}/my-upload-key.jks" debug.keystore
 
-      - name: Prepare public release repository (LifeHubTracker)
-        env:
-          RELEASE_REPO: ${{ steps.meta.outputs.release_repo }}
-          RELEASE_REPO_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
-        run: |
-          if [ -z "$RELEASE_REPO_TOKEN" ]; then
-            echo "::error::RELEASE_REPO_TOKEN secret is missing. Create a Fine-grained GitHub token with 'Contents: Read and write' access to Bharathkrishna-76/LifeHubTracker and save it in LifeHub -> Settings -> Secrets and variables -> Actions as RELEASE_REPO_TOKEN."
-            exit 1
-          fi
-          # Ensure LifeHubTracker has at least one commit so GitHub can create release tags
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${RELEASE_REPO_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${RELEASE_REPO}/commits?per_page=1")
-          if [ "$HTTP_CODE" = "409" ] || [ "$HTTP_CODE" = "404" ]; then
-            echo "Initializing empty release repository ${RELEASE_REPO} with a minimal README..."
-            README_B64=$(printf '%s\n' "# LifeHub Releases" "" "Official Android APK releases for LifeHub." | base64 -w 0)
-            INIT_CODE=$(curl -s -o /tmp/init_resp.txt -w "%{http_code}" -X PUT \
-              -H "Authorization: Bearer ${RELEASE_REPO_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${RELEASE_REPO}/contents/README.md" \
-              -d "{\"message\":\"Initialize releases repository\",\"content\":\"${README_B64}\"}")
-            if [ "$INIT_CODE" != "201" ] && [ "$INIT_CODE" != "200" ]; then
-              echo "::error::Could not access or initialize ${RELEASE_REPO} (HTTP ${INIT_CODE}). Check that ${RELEASE_REPO} exists as a Public repo and RELEASE_REPO_TOKEN has 'Contents: Read and write' permission on it."
-              exit 1
-            fi
-          fi
-
-      - name: Publish GitHub Release to LifeHubTracker (APK only)
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          repository: ${{ steps.meta.outputs.release_repo }}
-          token: ${{ secrets.RELEASE_REPO_TOKEN }}
           tag_name: ${{ steps.meta.outputs.tag }}
           name: LifeHub ${{ steps.meta.outputs.tag }}
           draft: false
           prerelease: ${{ github.event.inputs.prerelease == 'true' }}
-          generate_release_notes: false
+          generate_release_notes: true
           body: |
             ### LifeHub ${{ steps.meta.outputs.tag }} (Android)
 

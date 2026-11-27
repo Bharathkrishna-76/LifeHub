@@ -71,6 +71,12 @@ class AppUpdateManager(context: Context) {
     init {
         scope.launch(Dispatchers.IO) {
             downloader.cleanupOldApks(installedVersionCode)
+            val cached = cacheStore.loadCachedConfig()
+            if (cached != null) {
+                _uiState.update { current ->
+                    if (current.config == null) current.copy(config = cached) else current
+                }
+            }
         }
     }
 

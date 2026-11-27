@@ -27,4 +27,15 @@
     <string name="update_settings_version_format">Installed version %1$s (build %2$d)</string>
     <string name="update_data_safe_note">All expense records, settings, and your signed-in account stay preserved during update.</string>
     <string name="update_icon_cd">App update</string>
+    <string name="refer_app_title">Refer This App</string>
+    <string name="refer_app_subtitle">Share the direct APK download link with friends so they can install and use LifeHub right away.</string>
+    <string name="refer_app_share_button">Share Download Link</string>
+    <string name="refer_app_copy_button">Copy Link</string>
+    <string name="refer_app_open_button">Test Link</string>
+    <string name="refer_app_chooser_title">Share LifeHub APK</string>
+    <string name="refer_app_share_subject">Download LifeHub Android App</string>
+    <string name="refer_app_share_message">Track daily expenses, habits, goals &amp; trip splits with LifeHub!\n\nTap the link below to download the Android APK and install:\n%1$s</string>
+    <string name="refer_app_copied_toast">APK download link copied</string>
+    <string name="refer_app_no_browser_toast">No browser app found to open this link</string>
+    <string name="refer_app_icon_cd">Refer this app</string>
 </resources>

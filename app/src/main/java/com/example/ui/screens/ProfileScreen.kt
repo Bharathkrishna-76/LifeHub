@@ -75,6 +75,7 @@ import com.example.ui.theme.LocalLifeHubColors
 import com.example.ui.theme.NeonMint
 import com.example.ui.viewmodel.LifeHubUiState
 import com.example.update.AppUpdateSettingsCard
+import com.example.update.ReferAppCard
 import kotlinx.coroutines.launch
 
 /**
@@ -413,6 +414,17 @@ fun ProfileScreen(
                         }
                     }
                 }
+            }
+
+            // Refer This App (Direct APK Download Link Sharing)
+            item(key = "refer_app") {
+                val updateManager = remember(context) {
+                    (context.applicationContext as LifeHubApplication).container.appUpdateManager
+                }
+                ReferAppCard(
+                    updateManager = updateManager,
+                    onShowMessage = onShowMessage
+                )
             }
 
             // App Updates (Firebase Remote Config + GitHub Releases)
