@@ -2,12 +2,15 @@ package com.example.auth
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.example.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
@@ -26,6 +29,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 fun FirebaseAuth.authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
     val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
@@ -65,11 +74,16 @@ fun attemptAutoSignIn(
         .build()
     scope.launch {
         try {
-            val cred = credentialManager.getCredential(context, request).credential
+            val activityContext = context.findActivity() ?: context
+            val cred = credentialManager.getCredential(activityContext, request).credential
             if (cred is CustomCredential && cred.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val token = GoogleIdTokenCredential.createFrom(cred.data).idToken
                 Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
-                onAuthSuccess()
+                if (Firebase.auth.currentUser != null) {
+                    onAuthSuccess()
+                } else {
+                    onUnauthenticated()
+                }
             } else {
                 onUnauthenticated()
             }
@@ -102,18 +116,39 @@ fun onGoogleSignInClicked(
         .build()
     scope.launch {
         try {
-            val activityContext = context as? Activity ?: context
+            val activityContext = context.findActivity() ?: context
             val cred = credentialManager.getCredential(activityContext, request).credential
             if (cred is CustomCredential && cred.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val token = GoogleIdTokenCredential.createFrom(cred.data).idToken
                 Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
-                onAuthSuccess()
+                if (Firebase.auth.currentUser != null) {
+                    onAuthSuccess()
+                } else {
+                    onAuthError("Google Sign-In succeeded but Firebase session did not initialize. Please try again.")
+                }
             } else {
                 onAuthError("Unexpected credential type returned by Google Sign-In")
             }
         } catch (e: GetCredentialCancellationException) {
-            Log.w("Auth", "Google Sign-In flow cancelled or dismissed: ${e.message}", e)
-            onAuthCancelled()
+            val rawMsg = e.message.orEmpty()
+            Log.w("Auth", "Google Sign-In flow cancelled or dismissed: $rawMsg", e)
+            val looksLikeConfigError = rawMsg.contains("28444", ignoreCase = true) ||
+                rawMsg.contains("developer", ignoreCase = true) ||
+                rawMsg.contains("reauth", ignoreCase = true) ||
+                rawMsg.contains("not found", ignoreCase = true) ||
+                rawMsg.contains("16:", ignoreCase = true)
+            if (looksLikeConfigError) {
+                onAuthError("Google Sign-In rejected this APK's signing fingerprint (SHA-1 mismatch). Rebuild with the Firebase-registered keystore or add this APK's SHA-1 in Firebase Console.")
+            } else {
+                onAuthCancelled()
+            }
+        } catch (e: NoCredentialException) {
+            Log.e("Auth", "No Google credential available", e)
+            onAuthError("No Google account credential available. Check that a Google account is signed in on this device and the APK SHA-1 matches Firebase.")
+        } catch (e: GetCredentialException) {
+            Log.e("Auth", "Google Sign-In credential error: ${e.type} - ${e.message}", e)
+            val detail = e.errorMessage?.toString() ?: e.localizedMessage ?: e.type
+            onAuthError("Google Sign-In failed: $detail")
         } catch (e: Exception) {
             Log.e("Auth", "Google Sign-In failed", e)
             onAuthError(e.localizedMessage ?: "Sign in failed. Please try again.")

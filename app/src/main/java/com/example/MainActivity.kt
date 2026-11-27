@@ -24,7 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,8 +69,13 @@ fun LifeHubRootApp() {
     val settings by app.container.preferencesManager.settingsFlow
         .collectAsStateWithLifecycle(initialValue = UserSettings(themeMode = ThemeMode.DARK))
 
-    val currentUser by Firebase.auth.authStateFlow()
+    val authStateFlow = remember { Firebase.auth.authStateFlow() }
+    val observedUser by authStateFlow
         .collectAsStateWithLifecycle(initialValue = Firebase.auth.currentUser)
+    var manualSignInUid by remember { mutableStateOf<String?>(null) }
+    val currentUser = observedUser ?: Firebase.auth.currentUser.takeIf {
+        it != null && it.uid == manualSignInUid
+    }
 
     val tripSplitPrefs = remember(context) { TripSplitPreferences.getInstance(context) }
     val appMode by tripSplitPrefs.appMode.collectAsStateWithLifecycle()
@@ -91,7 +98,11 @@ fun LifeHubRootApp() {
                     LifeHubTheme(themeMode = settings.themeMode) {
                         val user = currentUser
                         if (user == null) {
-                            AuthScreen(onAuthSuccess = { /* AuthStateListener transitions automatically */ })
+                            AuthScreen(
+                                onAuthSuccess = {
+                                    manualSignInUid = Firebase.auth.currentUser?.uid
+                                }
+                            )
                         } else {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 key(user.uid) {
