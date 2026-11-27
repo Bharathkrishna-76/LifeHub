@@ -214,22 +214,32 @@ jobs:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
           set -o pipefail
+          KEYSTORE_SOURCE="existing"
           if [ ! -f debug.keystore ]; then
             if [ -f debug.keystore.base64 ]; then
               echo "Decoding committed debug.keystore.base64..."
               base64 --decode debug.keystore.base64 > debug.keystore
+              KEYSTORE_SOURCE="repo-file"
             elif [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
               echo "Decoding DEBUG_KEYSTORE_BASE64 secret..."
               printf '%s' "$DEBUG_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > debug.keystore
+              KEYSTORE_SOURCE="github-secret"
             else
-              echo "::warning::debug.keystore.base64 is missing from the repo and DEBUG_KEYSTORE_BASE64 secret is not set. Generating a temporary keystore—Google Sign-In WILL FAIL until you add DEBUG_KEYSTORE_BASE64 secret (copied from debug.keystore.base64 in AI Studio) or register the generated SHA-1 in Firebase Console."
+              echo "::warning::No persistent keystore found (debug.keystore.base64 missing and DEBUG_KEYSTORE_BASE64 secret not set). Generating a temporary keystore—Google Sign-In and in-app updates will fail until you run 'One-Time Generate Signing Keystore' and save DEBUG_KEYSTORE_BASE64."
               keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+              KEYSTORE_SOURCE="temporary"
             fi
           fi
           SHA1_FP=$(keytool -list -v -keystore debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep -m1 "SHA1:" | awk '{print $2}')
-          echo "Signing debug APK with SHA-1: ${SHA1_FP:-unknown}"
-          if [ -n "$SHA1_FP" ] && [ "$SHA1_FP" != "C6:D6:38:9F:1E:3F:26:B3:20:73:D1:6D:67:4A:BF:1B:E9:41:19:16" ]; then
-            echo "::warning::APK SHA-1 (${SHA1_FP}) does not match Firebase registered SHA-1 (C6:D6:38:9F:1E:3F:26:B3:20:73:D1:6D:67:4A:BF:1B:E9:41:19:16). Google Sign-In will fail unless you set DEBUG_KEYSTORE_BASE64 secret or add ${SHA1_FP} to Firebase Console."
+          SHA256_FP=$(keytool -list -v -keystore debug.keystore -storepass android -alias androiddebugkey 2>/dev/null | grep -m1 "SHA256:" | awk '{print $2}')
+          echo "Signing debug APK (${KEYSTORE_SOURCE}) with SHA-1: ${SHA1_FP:-unknown}"
+          {
+            echo "### APK Signing Fingerprint (\`${KEYSTORE_SOURCE}\`)"
+            echo "- **SHA-1:** \`${SHA1_FP:-unknown}\`"
+            echo "- **SHA-256:** \`${SHA256_FP:-unknown}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$KEYSTORE_SOURCE" = "temporary" ]; then
+            echo "::warning::Temporary keystore SHA-1 (${SHA1_FP}) is not registered in Firebase Console. Google Sign-In will not open the app until you save a persistent DEBUG_KEYSTORE_BASE64 secret and add its SHA-1 to Firebase."
           fi
           if ! gradle :app:assembleDebug --no-configuration-cache --max-workers=2 --console=plain \
             -Dorg.gradle.parallel=false \

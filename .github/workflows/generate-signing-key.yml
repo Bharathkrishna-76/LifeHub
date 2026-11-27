@@ -1,0 +1,69 @@
+name: One-Time Generate Signing Keystore
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-key:
+    name: Generate Persistent Debug Signing Keystore
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure repository is private before generating key
+        run: |
+          if [ "${{ github.event.repository.private }}" != "true" ]; then
+            echo "::error::For your security, this one-time keystore generator only runs while the repository is Private. Keep the repo Private until you save DEBUG_KEYSTORE_BASE64 and delete this run."
+            exit 1
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Generate persistent PKCS12 signing keystore
+        run: |
+          mkdir -p out
+          keytool -genkeypair -v \
+            -keystore out/debug.keystore \
+            -storetype PKCS12 \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=LifeHub App,O=LifeHub,C=US"
+
+          base64 -w 0 out/debug.keystore > out/DEBUG_KEYSTORE_BASE64.txt
+
+          SHA1_FP=$(keytool -list -v -keystore out/debug.keystore -storepass android -alias androiddebugkey | grep -m1 "SHA1:" | awk '{print $2}')
+          SHA256_FP=$(keytool -list -v -keystore out/debug.keystore -storepass android -alias androiddebugkey | grep -m1 "SHA256:" | awk '{print $2}')
+
+          {
+            echo "## Persistent Signing Keystore Ready"
+            echo ""
+            echo "### 1. Add these two fingerprints in Firebase Console"
+            echo "Open Firebase Console -> Project Settings -> Your apps -> \`com.aistudio.lifehub.mzkpqr\` -> **+ Add fingerprint**:"
+            echo ""
+            echo "- **SHA-1:** \`${SHA1_FP}\`"
+            echo "- **SHA-256:** \`${SHA256_FP}\`"
+            echo ""
+            echo "### 2. Save the GitHub Secret"
+            echo "1. Scroll down to **Artifacts** on this page and download **\`DEBUG_KEYSTORE_BASE64\`**."
+            echo "2. Unzip it, open \`DEBUG_KEYSTORE_BASE64.txt\`, and copy the full 1-line text."
+            echo "3. Open **Settings -> Secrets and variables -> Actions -> New repository secret**:"
+            echo "   - Name: \`DEBUG_KEYSTORE_BASE64\`"
+            echo "   - Secret: paste the copied text"
+            echo "4. Delete this workflow run after saving the secret, then run **Build & Publish GitHub Release**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          rm -f out/debug.keystore
+
+      - name: Upload DEBUG_KEYSTORE_BASE64 artifact (expires in 1 day)
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEBUG_KEYSTORE_BASE64
+          path: out/DEBUG_KEYSTORE_BASE64.txt
+          retention-days: 1
