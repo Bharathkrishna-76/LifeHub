@@ -1,9 +1,23 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,20 +34,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoGraph
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,28 +55,58 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import com.example.R
 import com.example.auth.attemptAutoSignIn
 import com.example.auth.onGoogleSignInClicked
 import com.example.ui.components.ErrorBanner
-import com.example.ui.theme.CyberViolet
-import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.LocalLifeHubColors
-import com.example.ui.theme.NeonMint
-import com.example.ui.theme.ObsidianBg
+import kotlinx.coroutines.delay
+
+@Composable
+fun LifeHubSplashScreen(
+    modifier: Modifier = Modifier
+) {
+    SplashBackdrop(modifier = modifier.testTag("splash_loading_screen")) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            AnimatedSplashEmblem(isLoading = true)
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(28.dp))
+            SplashLoadingBar()
+        }
+    }
+}
 
 @Composable
 fun AuthScreen(
@@ -77,13 +116,17 @@ fun AuthScreen(
     val scope = rememberCoroutineScope()
     val credentialManager = remember(context) { CredentialManager.create(context) }
 
-    var isLoading by remember { mutableStateOf(false) }
+    var isSigningIn by remember { mutableStateOf(false) }
     var isAutoChecking by remember { mutableStateOf(true) }
+    var splashTimerDone by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        visible = true
+        delay(950L)
+        splashTimerDone = true
+    }
+
+    LaunchedEffect(Unit) {
         attemptAutoSignIn(
             context = context,
             credentialManager = credentialManager,
@@ -98,219 +141,140 @@ fun AuthScreen(
         )
     }
 
-    val extended = LocalLifeHubColors.current
+    val isSplashLoading = isAutoChecking || !splashTimerDone
     val cs = MaterialTheme.colorScheme
-    val isDark = extended.isDark
-    val rootBg = if (isDark) ObsidianBg else cs.background
-    val titleInk = if (isDark) Color.White else cs.onBackground
-    val subInk = if (isDark) Color(0xFFA7B2CC) else extended.mutedText
-    val cardBg = if (isDark) Color(0xCC141928) else Color(0xF2FFFFFF)
-    val cardBorder = if (isDark) Color.White.copy(alpha = 0.12f) else cs.outline.copy(alpha = 0.35f)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(rootBg)
-    ) {
-        // Hero background artwork
-        Image(
-            painter = painterResource(id = R.drawable.img_auth_hero),
-            contentDescription = "LifeHub abstract hero artwork",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(420.dp)
-                .align(Alignment.TopCenter)
-        )
-
-        // Atmospheric gradient fade into theme background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color.Transparent,
-                            0.32f to rootBg.copy(alpha = 0.65f),
-                            0.52f to rootBg.copy(alpha = 0.96f),
-                            1.0f to rootBg
-                        )
-                    )
-                )
-        )
-
+    SplashBackdrop(modifier = Modifier.testTag("auth_login_screen")) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp)
-                .widthIn(max = 520.dp)
+                .padding(horizontal = 28.dp, vertical = 32.dp)
+                .widthIn(max = 440.dp)
                 .align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(Modifier.height(180.dp))
+            Spacer(Modifier.height(24.dp))
 
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn() + slideInVertically { it / 4 }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        shape = RoundedCornerShape(22.dp),
-                        color = if (isDark) Color(0xFF121622) else Color.White,
-                        border = BorderStroke(1.dp, extended.accentMint.copy(alpha = 0.5f)),
-                        modifier = Modifier.size(72.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_lifehub_mark),
-                            contentDescription = "LifeHub emblem",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                AnimatedSplashEmblem(isLoading = isSplashLoading || isSigningIn)
 
-                    Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(24.dp))
 
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.displayMedium,
-                        color = titleInk,
-                        fontWeight = FontWeight.Bold
-                    )
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = cs.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                    Spacer(Modifier.height(8.dp))
-
-                    Text(
-                        text = stringResource(R.string.tagline),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = subInk,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(Modifier.height(28.dp))
-
-                    // Value highlights grid
-                    Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        color = cardBg,
-                        border = BorderStroke(1.dp, cardBorder),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = isSplashLoading,
+                    transitionSpec = {
+                        (fadeIn(tween(260)) + slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { it / 4 }) togetherWith fadeOut(tween(200))
+                    },
+                    label = "splash_to_login"
+                ) { loading ->
+                    if (loading) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 16.dp)
                         ) {
-                            AuthFeatureRow(
-                                icon = Icons.Rounded.AutoGraph,
-                                tint = extended.accentMint,
-                                title = "Smart Expense & Money Score",
-                                subtitle = "Month-scoped banking analytics & 0–100 credit-style score"
-                            )
-                            AuthFeatureRow(
-                                icon = Icons.Rounded.Bolt,
-                                tint = extended.accentViolet,
-                                title = "Fitness-Style Habit Rings & Streaks",
-                                subtitle = "Daily streaks, heatmaps & Spotify-style Monthly Wrapped"
-                            )
-                            AuthFeatureRow(
-                                icon = Icons.Rounded.Savings,
-                                tint = extended.accentCyan,
-                                title = "Gamified Goals, Kanban & Reminders",
-                                subtitle = "Offline-first Room cache synced securely to your cloud vault"
-                            )
+                            SplashLoadingBar()
                         }
-                    }
-
-                    Spacer(Modifier.height(22.dp))
-
-                    if (errorMessage != null) {
-                        ErrorBanner(
-                            message = errorMessage!!,
-                            onDismiss = { errorMessage = null }
-                        )
-                        Spacer(Modifier.height(14.dp))
-                    }
-
-                    Button(
-                        onClick = {
-                            errorMessage = null
-                            isLoading = true
-                            onGoogleSignInClicked(
-                                context = context,
-                                credentialManager = credentialManager,
-                                onAuthSuccess = {
-                                    isLoading = false
-                                    onAuthSuccess()
-                                },
-                                onAuthError = { msg ->
-                                    isLoading = false
-                                    errorMessage = msg
-                                },
-                                scope = scope,
-                                onAuthCancelled = {
-                                    isLoading = false
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            AnimatedVisibility(visible = errorMessage != null) {
+                                Column {
+                                    errorMessage?.let { msg ->
+                                        ErrorBanner(
+                                            message = msg,
+                                            onDismiss = { errorMessage = null }
+                                        )
+                                        Spacer(Modifier.height(14.dp))
+                                    }
                                 }
-                            )
-                        },
-                        enabled = !isLoading && !isAutoChecking,
-                        shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NeonMint,
-                            contentColor = Color(0xFF042217)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .testTag("google_sign_in_button")
-                    ) {
-                        if (isLoading || isAutoChecking) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.5.dp,
-                                color = Color(0xFF042217)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = if (isAutoChecking) "Restoring session…" else stringResource(R.string.signing_in),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = stringResource(R.string.sign_in_google),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            }
+
+                            Button(
+                                onClick = {
+                                    errorMessage = null
+                                    isSigningIn = true
+                                    onGoogleSignInClicked(
+                                        context = context,
+                                        credentialManager = credentialManager,
+                                        onAuthSuccess = {
+                                            isSigningIn = false
+                                            onAuthSuccess()
+                                        },
+                                        onAuthError = { msg ->
+                                            isSigningIn = false
+                                            errorMessage = msg
+                                        },
+                                        scope = scope,
+                                        onAuthCancelled = {
+                                            isSigningIn = false
+                                        }
+                                    )
+                                },
+                                enabled = !isSigningIn,
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = cs.primary,
+                                    contentColor = cs.onPrimary
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .testTag("google_sign_in_button")
+                            ) {
+                                if (isSigningIn) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        strokeWidth = 2.5.dp,
+                                        color = cs.onPrimary
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        text = stringResource(R.string.signing_in),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Rounded.Login,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        text = stringResource(R.string.sign_in_google),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Lock,
-                            contentDescription = null,
-                            tint = Color(0xFF7B87A3),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "Private per-account cloud sync • Zero spam",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF7B87A3)
-                        )
                     }
                 }
             }
@@ -319,42 +283,214 @@ fun AuthScreen(
 }
 
 @Composable
-private fun AuthFeatureRow(
-    icon: ImageVector,
-    tint: Color,
-    title: String,
-    subtitle: String
+private fun SplashBackdrop(
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val extended = LocalLifeHubColors.current
+    val infiniteTransition = rememberInfiniteTransition(label = "ambient_aura")
+    val glowPulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "aura_pulse"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(cs.background)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val topAuraRadius = size.minDimension * 0.65f * glowPulse
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        extended.accentMint.copy(alpha = if (extended.isDark) 0.16f else 0.12f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.5f, size.height * 0.36f),
+                    radius = topAuraRadius
+                ),
+                radius = topAuraRadius,
+                center = Offset(size.width * 0.5f, size.height * 0.36f)
+            )
+            val bottomAuraRadius = size.minDimension * 0.55f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        extended.accentViolet.copy(alpha = if (extended.isDark) 0.14f else 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.82f, size.height * 0.82f),
+                    radius = bottomAuraRadius
+                ),
+                radius = bottomAuraRadius,
+                center = Offset(size.width * 0.82f, size.height * 0.82f)
+            )
+        }
+        content()
+    }
+}
+
+@Composable
+private fun AnimatedSplashEmblem(
+    isLoading: Boolean
+) {
+    val cs = MaterialTheme.colorScheme
+    val extended = LocalLifeHubColors.current
+    val enterScale = remember { Animatable(0.82f) }
+    val enterAlpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        enterAlpha.animateTo(1f, animationSpec = tween(320))
+    }
+    LaunchedEffect(Unit) {
+        enterScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "emblem_motion")
+    val orbitAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isLoading) 1600 else 4200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orbit_angle"
+    )
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.03f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(152.dp)
+            .alpha(enterAlpha.value)
+            .scale(enterScale.value),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokePx = 3.5.dp.toPx()
+            val inset = strokePx + 6.dp.toPx()
+            val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
+            val topLeft = Offset(inset, inset)
+
+            // Soft static guide track
+            drawOval(
+                color = extended.accentMint.copy(alpha = if (extended.isDark) 0.14f else 0.18f),
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = 1.5.dp.toPx())
+            )
+
+            // Luminous orbiting ring arc
+            rotate(degrees = orbitAngle) {
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        0.0f to Color.Transparent,
+                        0.35f to extended.accentViolet.copy(alpha = 0.55f),
+                        0.7f to extended.accentCyan.copy(alpha = 0.85f),
+                        1.0f to extended.accentMint
+                    ),
+                    startAngle = 0f,
+                    sweepAngle = 250f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round)
+                )
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = cs.surface,
+            border = BorderStroke(1.5.dp, extended.accentMint.copy(alpha = 0.55f)),
+            shadowElevation = 10.dp,
+            modifier = Modifier
+                .size(90.dp)
+                .scale(if (isLoading) breathScale else 1f)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_lifehub_mark),
+                contentDescription = stringResource(R.string.app_name),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+@Composable
+private fun SplashLoadingBar() {
     val extended = LocalLifeHubColors.current
     val cs = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(tint.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center
+    val infiniteTransition = rememberInfiniteTransition(label = "dots_wave")
+
+    val dotAlphas = listOf(0, 180, 360).map { delayMs ->
+        infiniteTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 650,
+                    delayMillis = delayMs,
+                    easing = FastOutSlowInEasing
+                ),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot_$delayMs"
+        )
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = tint,
-                modifier = Modifier.size(20.dp)
-            )
+            dotAlphas.forEachIndexed { index, alphaState ->
+                val dotColor = when (index) {
+                    0 -> extended.accentMint
+                    1 -> extended.accentCyan
+                    else -> extended.accentViolet
+                }
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .alpha(alphaState.value)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+            }
         }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = if (extended.isDark) Color.White else cs.onSurface,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (extended.isDark) Color(0xFF9BA6C1) else extended.mutedText
-            )
-        }
+
+        LinearProgressIndicator(
+            modifier = Modifier
+                .width(136.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(999.dp)),
+            color = cs.primary,
+            trackColor = cs.surfaceVariant
+        )
     }
 }

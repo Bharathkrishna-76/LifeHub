@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -46,11 +47,13 @@ import com.example.tripsplit.data.TripSplitPreferences
 import com.example.tripsplit.navigation.TripSplitRoot
 import com.example.ui.navigation.LifeHubMainShell
 import com.example.ui.screens.AuthScreen
+import com.example.ui.screens.LifeHubSplashScreen
 import com.example.ui.theme.LifeHubTheme
 import com.example.update.AppUpdateHost
 import com.example.update.AppUpdateLifecycleEffect
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,6 +80,14 @@ fun LifeHubRootApp() {
         it != null && it.uid == manualSignInUid
     }
 
+    var showLaunchSplash by remember { mutableStateOf(Firebase.auth.currentUser != null) }
+    LaunchedEffect(Unit) {
+        if (showLaunchSplash) {
+            delay(950L)
+            showLaunchSplash = false
+        }
+    }
+
     val tripSplitPrefs = remember(context) { TripSplitPreferences.getInstance(context) }
     val appMode by tripSplitPrefs.appMode.collectAsStateWithLifecycle()
 
@@ -87,6 +98,13 @@ fun LifeHubRootApp() {
     if (updateState.isMandatoryBlocking) {
         LifeHubTheme(themeMode = settings.themeMode) {
             AppUpdateHost(updateManager = updateManager, state = updateState)
+        }
+        return
+    }
+
+    if (showLaunchSplash && currentUser != null) {
+        LifeHubTheme(themeMode = settings.themeMode) {
+            LifeHubSplashScreen()
         }
         return
     }
