@@ -172,18 +172,29 @@ jobs:
 
       - name: Prepare environment and Firebase config
         env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
           if [ ! -f .env ]; then
             touch .env
           fi
-          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
+
+          RAW_GS="${GOOGLE_SERVICES_JSON:-$GOOGLE_SERVICES_JSON_BASE64}"
+          if [ -n "$RAW_GS" ]; then
+            TRIMMED_GS="$(printf '%s' "$RAW_GS" | sed -e 's/^[[:space:]]*//')"
+            if [[ "$TRIMMED_GS" == \{* ]]; then
+              printf '%s\n' "$RAW_GS" > app/google-services.json
+            else
+              printf '%s' "$RAW_GS" | base64 --decode > app/google-services.json
+            fi
           fi
+
           if [ ! -f app/google-services.json ]; then
-            echo "::error::app/google-services.json is missing from the GitHub repository. Push app/google-services.json or add GOOGLE_SERVICES_JSON_BASE64 in Actions Secrets."
+            echo "::error::app/google-services.json is missing because Google AI Studio excludes it from GitHub pushes. Open app/google-services.json in AI Studio, copy its text, and add it as GitHub Actions secret GOOGLE_SERVICES_JSON."
             exit 1
           fi
+
+          node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync("app/google-services.json","utf8")); if(!d.project_info?.project_id) throw new Error("Missing project_info.project_id");'
 
       - name: Build signed Release APK & AAB
         if: steps.meta.outputs.mode == 'release'
