@@ -252,12 +252,6 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/${{ steps.meta.outputs.apk_filename }}"
 
-      - name: Generate SHA-256 checksums
-        run: |
-          cd dist
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
       - name: Clean up temporary keystore files
         if: always()
         run: |
@@ -285,7 +279,7 @@ jobs:
             2. Open the downloaded `.apk` and allow installation if prompted.
             3. Existing users will also receive this update automatically inside the app.
           files: |
-            dist/*
+            dist/*.apk
 
       - name: Auto-Publish Firebase Remote Config
         if: github.event.inputs.prerelease != 'true'
