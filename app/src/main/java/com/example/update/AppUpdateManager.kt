@@ -215,8 +215,8 @@ class AppUpdateManager(context: Context) {
                 val rc = getOrInitRemoteConfig() ?: return@withContext null
                 withTimeout(COROUTINE_FETCH_TIMEOUT_MS) {
                     if (forceFresh) {
-                        // Manual checks use a 60s minimum fetch interval to stay Spark-tier friendly
-                        rc.fetch(60L).await()
+                        // Manual button tap fetches fresh immediately (protected by Kotlin cooldown)
+                        rc.fetch(0L).await()
                         rc.activate().await()
                     } else {
                         rc.fetchAndActivate().await()
