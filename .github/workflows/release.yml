@@ -179,22 +179,34 @@ jobs:
             touch .env
           fi
 
-          RAW_GS="${GOOGLE_SERVICES_JSON:-$GOOGLE_SERVICES_JSON_BASE64}"
-          if [ -n "$RAW_GS" ]; then
-            TRIMMED_GS="$(printf '%s' "$RAW_GS" | sed -e 's/^[[:space:]]*//')"
-            if [[ "$TRIMMED_GS" == \{* ]]; then
-              printf '%s\n' "$RAW_GS" > app/google-services.json
-            else
-              printf '%s' "$RAW_GS" | base64 --decode > app/google-services.json
-            fi
-          fi
-
-          if [ ! -f app/google-services.json ]; then
-            echo "::error::app/google-services.json is missing because Google AI Studio excludes it from GitHub pushes. Open app/google-services.json in AI Studio, copy its text, and add it as GitHub Actions secret GOOGLE_SERVICES_JSON."
-            exit 1
-          fi
-
-          node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync("app/google-services.json","utf8")); if(!d.project_info?.project_id) throw new Error("Missing project_info.project_id");'
+          node -e '
+            const fs = require("fs");
+            const raw = (process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_JSON_BASE64 || "").trim();
+            if (!raw) {
+              if (!fs.existsSync("app/google-services.json")) {
+                console.error("::error::app/google-services.json is missing. Copy app/google-services.json and save it as GitHub Actions secret GOOGLE_SERVICES_JSON.");
+                process.exit(1);
+              }
+            } else {
+              let jsonText = raw;
+              if (!raw.startsWith("{")) {
+                jsonText = Buffer.from(raw.replace(/\s+/g, ""), "base64").toString("utf8").trim();
+              }
+              let parsed;
+              try {
+                parsed = JSON.parse(jsonText);
+              } catch (e) {
+                console.error(`::error::GOOGLE_SERVICES_JSON is not complete valid JSON (${e.message}). Make sure you copied the entire file from { to }.`);
+                process.exit(1);
+              }
+              if (!parsed.project_info?.project_id || !Array.isArray(parsed.client)) {
+                console.error("::error::GOOGLE_SERVICES_JSON does not look like a Firebase google-services.json file (missing project_info/client).");
+                process.exit(1);
+              }
+              fs.writeFileSync("app/google-services.json", JSON.stringify(parsed, null, 2));
+              console.log(`Configured app/google-services.json for project ${parsed.project_info.project_id}`);
+            }
+          '
 
       - name: Build signed Release APK & AAB
         if: steps.meta.outputs.mode == 'release'
