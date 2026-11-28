@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,7 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DarkMode
@@ -65,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -169,7 +173,7 @@ private fun TripSplitShell(
             .fillMaxSize()
             .background(colors.canvas)
     ) {
-        val isExpanded = maxWidth >= 700.dp
+        val isExpanded = maxWidth >= 600.dp
 
         Row(modifier = Modifier.fillMaxSize()) {
             if (isExpanded) {
@@ -425,16 +429,18 @@ private fun TripSplitCompactTopBar(
             .fillMaxWidth()
             .background(colors.canvas)
             .statusBarsPadding()
+            .displayCutoutPadding()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
-                .padding(horizontal = 16.dp),
+                .defaultMinSize(minHeight = 54.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -457,9 +463,13 @@ private fun TripSplitCompactTopBar(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = colors.inkPrimary
+                    color = colors.inkPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -468,7 +478,7 @@ private fun TripSplitCompactTopBar(
                 IconButton(
                     onClick = onToggleTheme,
                     modifier = Modifier
-                        .size(40.dp)
+                        .defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
                         .testTag("ts_theme_toggle_btn")
                 ) {
                     Icon(
@@ -487,6 +497,7 @@ private fun TripSplitCompactTopBar(
 
                 Surface(
                     modifier = Modifier
+                        .defaultMinSize(minHeight = 40.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = onSwitchToDaily)
                         .testTag("ts_switch_to_daily_btn"),
@@ -509,7 +520,10 @@ private fun TripSplitCompactTopBar(
                         Text(
                             text = stringResource(R.string.ts_mode_daily),
                             style = MaterialTheme.typography.labelLarge,
-                            color = colors.inkPrimary
+                            color = colors.inkPrimary,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -538,7 +552,7 @@ private fun TripSplitCompactBottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp)
+                .defaultMinSize(minHeight = 60.dp)
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
@@ -549,7 +563,7 @@ private fun TripSplitCompactBottomBar(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
+                        .defaultMinSize(minHeight = 60.dp)
                         .clickable { onSelectTab(tab) }
                         .testTag(tab.testTag),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -565,7 +579,7 @@ private fun TripSplitCompactBottomBar(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(2.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(horizontal = 2.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = tab.icon,
@@ -580,7 +594,9 @@ private fun TripSplitCompactBottomBar(
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                             ),
                             color = tint,
-                            maxLines = 1
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -606,9 +622,11 @@ private fun TripSplitSideRail(
             .background(colors.navBarBg)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .displayCutoutPadding()
+            .verticalScroll(rememberScrollState())
             .padding(vertical = 14.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -628,7 +646,7 @@ private fun TripSplitSideRail(
                     modifier = Modifier.size(18.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             TripSplitTab.entries.forEach { tab ->
                 val selected = currentTab == tab
                 val tint = if (selected) colors.accent else colors.navIconInactive
@@ -640,7 +658,7 @@ private fun TripSplitSideRail(
                         .background(if (selected) colors.accentSoft else Color.Transparent)
                         .clickable { onSelectTab(tab) }
                         .testTag(tab.testTag)
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 8.dp, horizontal = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
@@ -653,7 +671,10 @@ private fun TripSplitSideRail(
                     Text(
                         text = tab.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = tint
+                        color = tint,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -683,7 +704,7 @@ private fun TripSplitSideRail(
                 color = colors.surfaceMuted
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -692,7 +713,14 @@ private fun TripSplitSideRail(
                         tint = colors.accent,
                         modifier = Modifier.size(17.dp)
                     )
-                    Text("Daily", style = MaterialTheme.typography.labelSmall, color = colors.inkPrimary)
+                    Text(
+                        text = stringResource(R.string.ts_mode_daily),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.inkPrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.tripsplit.components.SpendingBreakdownChartCard
 import com.example.tripsplit.components.SwipeableTripExpenseRow
@@ -61,6 +64,7 @@ import com.example.tripsplit.domain.TripExpense
 import com.example.tripsplit.theme.LocalTripSplitColors
 import com.example.tripsplit.theme.TripMonoFont
 import com.example.tripsplit.viewmodel.TripSplitUiState
+import com.example.ui.components.rememberResponsiveMetrics
 
 private enum class ExpenseSourceFilter(val label: String) {
     ALL("All"),
@@ -147,120 +151,173 @@ fun TripSplitLedgerScreen(
     }
     val filteredSum = remember(filteredExpenses) { filteredExpenses.sumOf { it.amount } }
 
-    LazyColumn(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.canvas),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 92.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(colors.canvas)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Ledger",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = colors.inkPrimary
-                    )
-                    Text(
-                        text = "${trip.title} · ${filteredExpenses.size} item${if (filteredExpenses.size == 1) "" else "s"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.inkMuted
-                    )
-                }
+        val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
 
-                Box {
-                    Surface(
-                        modifier = Modifier
-                            .defaultMinSize(minHeight = 40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { sortMenuOpen = true }
-                            .testTag("ts_ledger_sort_btn"),
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.surface,
-                        border = BorderStroke(1.dp, colors.borderSubtle),
-                        shadowElevation = 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.FilterList,
-                                contentDescription = "Sort expenses",
-                                tint = colors.accent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = sortOrder.label,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = colors.inkPrimary
-                            )
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = sortMenuOpen,
-                        onDismissRequest = { sortMenuOpen = false },
-                        containerColor = colors.surface
-                    ) {
-                        ExpenseSortOrder.entries.forEach { order ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = order.label,
-                                        color = if (sortOrder == order) colors.accent else colors.inkPrimary,
-                                        fontWeight = if (sortOrder == order) FontWeight.SemiBold else FontWeight.Normal
-                                    )
-                                },
-                                onClick = {
-                                    sortOrder = order
-                                    sortMenuOpen = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Compact Summary Row
-        item {
-            TripSageCard(padding = 14.dp) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = responsive.horizontalPadding,
+                end = responsive.horizontalPadding,
+                top = 8.dp,
+                bottom = 92.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Filtered Total",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.inkSecondary
+                            text = "Ledger",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = colors.inkPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = formatTripMoney(filteredSum, trip.currencySymbol),
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontFamily = TripMonoFont,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = colors.inkPrimary
+                            text = "${trip.title} · ${filteredExpenses.size} item${if (filteredExpenses.size == 1) "" else "s"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.inkMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    TripPrimaryButton(
-                        text = "Add Expense",
-                        icon = Icons.Rounded.Add,
-                        onClick = onAddExpenseClick,
-                        testTag = "ts_ledger_add_expense_btn"
-                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box {
+                        Surface(
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { sortMenuOpen = true }
+                                .testTag("ts_ledger_sort_btn"),
+                            shape = RoundedCornerShape(10.dp),
+                            color = colors.surface,
+                            border = BorderStroke(1.dp, colors.borderSubtle),
+                            shadowElevation = 0.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.FilterList,
+                                    contentDescription = "Sort expenses",
+                                    tint = colors.accent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = sortOrder.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = sortMenuOpen,
+                            onDismissRequest = { sortMenuOpen = false },
+                            containerColor = colors.surface
+                        ) {
+                            ExpenseSortOrder.entries.forEach { order ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = order.label,
+                                            color = if (sortOrder == order) colors.accent else colors.inkPrimary,
+                                            fontWeight = if (sortOrder == order) FontWeight.SemiBold else FontWeight.Normal
+                                        )
+                                    },
+                                    onClick = {
+                                        sortOrder = order
+                                        sortMenuOpen = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
-        }
+
+            // Compact Summary Row (stacks cleanly on narrow/large-font screens)
+            item {
+                TripSageCard(padding = 14.dp) {
+                    if (responsive.shouldStackTightPairs) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Filtered Total",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.inkSecondary
+                                )
+                                Text(
+                                    text = formatTripMoney(filteredSum, trip.currencySymbol),
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontFamily = TripMonoFont,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            TripPrimaryButton(
+                                text = "Add Expense",
+                                icon = Icons.Rounded.Add,
+                                onClick = onAddExpenseClick,
+                                modifier = Modifier.fillMaxWidth(),
+                                testTag = "ts_ledger_add_expense_btn"
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Filtered Total",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.inkSecondary
+                                )
+                                Text(
+                                    text = formatTripMoney(filteredSum, trip.currencySymbol),
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontFamily = TripMonoFont,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TripPrimaryButton(
+                                text = "Add Expense",
+                                icon = Icons.Rounded.Add,
+                                onClick = onAddExpenseClick,
+                                testTag = "ts_ledger_add_expense_btn"
+                            )
+                        }
+                    }
+                }
+            }
 
         // Clean Search Input
         item {
@@ -333,7 +390,10 @@ fun TripSplitLedgerScreen(
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (selected) colors.inkPrimary else colors.inkMuted,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                             )
                         }
                     }
@@ -413,6 +473,7 @@ fun TripSplitLedgerScreen(
                         onDelete = { onDeleteExpense(expense.id) }
                     )
                 }
+            }
             }
         }
     }

@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -77,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.CyberViolet
@@ -331,7 +333,7 @@ fun Extruded3DButton(
     val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
-            .height(54.dp)
+            .defaultMinSize(minHeight = 54.dp)
             .padding(bottom = 5.dp)
     ) {
         Box(
@@ -343,7 +345,8 @@ fun Extruded3DButton(
         )
         Row(
             modifier = Modifier
-                .matchParentSize()
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 49.dp)
                 .offset(y = yShift.dp)
                 .clip(shape)
                 .background(
@@ -357,7 +360,7 @@ fun Extruded3DButton(
                     indication = null,
                     onClick = onClick
                 )
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -369,7 +372,10 @@ fun Extruded3DButton(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 color = contentColor,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -541,7 +547,7 @@ fun DynamicIslandBar(
                             .weight(1f)
                             .clip(RoundedCornerShape(50))
                             .clickable { expanded = !expanded }
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .padding(horizontal = 4.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -551,15 +557,18 @@ fun DynamicIslandBar(
                                 .clip(CircleShape)
                                 .background(if (isSyncing) amberChip else mintAccent)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = title,
                             style = MaterialTheme.typography.labelLarge,
                             color = primaryInk,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = mintAccent.copy(alpha = if (isDark) 0.18f else 0.14f)
@@ -571,10 +580,13 @@ fun DynamicIslandBar(
                                 ),
                                 color = mintAccent,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                             )
                         }
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(2.dp))
                         ExpandCollapseChevron(expanded = expanded, tint = mutedInk)
                     }
 
@@ -626,7 +638,10 @@ fun DynamicIslandBar(
                             Text(
                                 text = if (isSyncing) "Syncing cloud vault…" else "Offline-first cache active",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = mutedInk
+                                color = mutedInk,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SpinningRefreshAction(
@@ -665,14 +680,17 @@ private fun IslandQuickChip(
         modifier = modifier
     ) {
         Box(
-            modifier = Modifier.padding(vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 color = accent,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

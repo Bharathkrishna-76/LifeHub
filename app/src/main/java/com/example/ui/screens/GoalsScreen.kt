@@ -18,23 +18,32 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Celebration
@@ -68,10 +77,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.GoalPreset
 import com.example.domain.model.SavingsGoalItem
 import com.example.domain.util.DateAndFormatUtils
+import com.example.ui.components.AdaptivePairLayout
 import com.example.ui.components.CloseAction
 import com.example.ui.components.EmptyStateCard
 import com.example.ui.components.ExpandCollapseChevron
@@ -82,6 +93,7 @@ import com.example.ui.components.FilterActionButton
 import com.example.ui.components.MoreOptionsAction
 import com.example.ui.components.SavingActionButton
 import com.example.ui.components.goalPresetIcon
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.CyberViolet
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.HotCoral
@@ -145,6 +157,7 @@ fun GoalsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = if (extended.isDark) Color(0xFF100E24) else Color(0xFFF0EEFF),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             floatingActionButton = {
                 // Tactile 3D Extruded FAB
                 Box(
@@ -181,80 +194,95 @@ fun GoalsScreen(
                 }
             }
         ) { innerPadding ->
-            LazyColumn(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .testTag("goals_list"),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                // 3D Extruded Hero Vault
-                item(key = "goals_3d_hero") {
-                    Extruded3DCard(
-                        faceColor = if (extended.isDark) Color(0xFF1E1A42) else Color.White,
-                        depthColor = if (extended.isDark) Color(0xFF4B28A8) else Color(0xFFC5B8F6),
-                        highlightColor = Color.White.copy(alpha = if (extended.isDark) 0.32f else 0.9f),
-                        depthOffset = 8.dp,
-                        cornerRadius = 28.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("goals_list"),
+                    contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    // 3D Extruded Hero Vault
+                    item(key = "goals_3d_hero") {
+                        Extruded3DCard(
+                            faceColor = if (extended.isDark) Color(0xFF1E1A42) else Color.White,
+                            depthColor = if (extended.isDark) Color(0xFF4B28A8) else Color(0xFFC5B8F6),
+                            highlightColor = Color.White.copy(alpha = if (extended.isDark) 0.32f else 0.9f),
+                            depthOffset = 8.dp,
+                            cornerRadius = 28.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "3D DREAM VAULTS",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = extended.accentViolet,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Savings Goals",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = cs.onSurface,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = NeonMint.copy(alpha = 0.18f),
-                                    border = BorderStroke(1.dp, NeonMint.copy(alpha = 0.5f))
-                                ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "$fundedCount FUNDED",
+                                        text = "3D DREAM VAULTS",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = extended.accentMint,
+                                        color = extended.accentViolet,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Savings Goals",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = cs.onSurface,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                FilterActionButton(
-                                    hasActiveFilter = filterMode != GoalFilterMode.ALL,
-                                    tint = cs.onSurface,
-                                    onClick = { showFilterRow = !showFilterRow }
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = NeonMint.copy(alpha = 0.18f),
+                                        border = BorderStroke(1.dp, NeonMint.copy(alpha = 0.5f))
+                                    ) {
+                                        Text(
+                                            text = "$fundedCount FUNDED",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = extended.accentMint,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                    FilterActionButton(
+                                        hasActiveFilter = filterMode != GoalFilterMode.ALL,
+                                        tint = cs.onSurface,
+                                        onClick = { showFilterRow = !showFilterRow }
+                                    )
+                                }
                             }
-                        }
 
-                        Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(14.dp))
 
-                        Text(
-                            text = DateAndFormatUtils.formatCurrency(totalSaved, symbol),
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontFamily = JetBrainsMonoFontFamily
-                            ),
-                            fontWeight = FontWeight.Bold,
-                            color = cs.onSurface
-                        )
-                        Text(
-                            text = "backed across ${state.goals.size} vault(s) • target ${DateAndFormatUtils.formatCurrency(totalTarget, symbol)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = extended.mutedText
-                        )
+                            Text(
+                                text = DateAndFormatUtils.formatCurrency(totalSaved, symbol),
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontFamily = JetBrainsMonoFontFamily
+                                ),
+                                fontWeight = FontWeight.Bold,
+                                color = cs.onSurface,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "backed across ${state.goals.size} vault(s) • target ${DateAndFormatUtils.formatCurrency(totalTarget, symbol)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = extended.mutedText
+                            )
 
                         Spacer(Modifier.height(12.dp))
                         Beveled3DProgressBar(
@@ -317,6 +345,7 @@ fun GoalsScreen(
                 }
 
                 item { Spacer(Modifier.height(84.dp)) }
+                }
             }
         }
 
@@ -482,7 +511,10 @@ private fun Tactile3DGoalCard(
                     Text(
                         text = goal.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     if (goal.completed) {
                         Spacer(Modifier.width(6.dp))
@@ -495,6 +527,8 @@ private fun Tactile3DGoalCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = extended.accentMint,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -509,7 +543,9 @@ private fun Tactile3DGoalCard(
                         }
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = extended.mutedText
+                    color = extended.mutedText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -543,26 +579,32 @@ private fun Tactile3DGoalCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "${DateAndFormatUtils.formatCurrency(goal.savedAmount, currencySymbol)} / ${DateAndFormatUtils.formatCurrency(goal.targetAmount, currencySymbol)}",
                     style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = if (goal.completed) "Vault unlocked!"
                     else "${DateAndFormatUtils.formatCurrency(remaining, currencySymbol)} left to unlock",
                     style = MaterialTheme.typography.bodySmall,
-                    color = extended.mutedText
+                    color = extended.mutedText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-
+            Spacer(Modifier.width(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${(animatedPct * 100).roundToInt()}%",
                     style = MaterialTheme.typography.headlineSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                     color = accent,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
                 Spacer(Modifier.width(4.dp))
                 ExpandCollapseChevron(expanded = showBreakdown)
@@ -583,19 +625,26 @@ private fun Tactile3DGoalCard(
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     val weeklyBoost = if (remaining > 0) remaining / 8.0 else 0.0
                     Text(
                         text = "8-week sprint pace",
                         style = MaterialTheme.typography.labelMedium,
-                        color = extended.mutedText
+                        color = extended.mutedText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         text = "${DateAndFormatUtils.formatCurrency(weeklyBoost, currencySymbol)} / wk",
                         style = MaterialTheme.typography.labelLarge.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = accent,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -665,16 +714,26 @@ private fun GoalCelebrationOverlay(
 
         val extended = LocalLifeHubColors.current
         val cs = MaterialTheme.colorScheme
-        Extruded3DCard(
-            faceColor = if (extended.isDark) Color(0xFF141928) else Color.White,
-            depthColor = if (extended.isDark) Color(0xFF0A7D56) else Color(0xFF8BE5C4),
-            highlightColor = extended.accentMint,
-            depthOffset = 9.dp,
-            cornerRadius = 30.dp,
+        Box(
             modifier = Modifier
-                .padding(28.dp)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .displayCutoutPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            contentAlignment = Alignment.Center
         ) {
+            Extruded3DCard(
+                faceColor = if (extended.isDark) Color(0xFF141928) else Color.White,
+                depthColor = if (extended.isDark) Color(0xFF0A7D56) else Color(0xFF8BE5C4),
+                highlightColor = extended.accentMint,
+                depthOffset = 9.dp,
+                cornerRadius = 30.dp,
+                modifier = Modifier
+                    .widthIn(max = 460.dp)
+                    .fillMaxWidth()
+            ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 CloseAction(onClick = onDismiss, tint = cs.onSurface)
             }
@@ -729,6 +788,7 @@ private fun GoalCelebrationOverlay(
                 )
             }
         }
+        }
     }
 }
 
@@ -751,98 +811,111 @@ private fun CreateGoalSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text("Launch 3D Savings Vault", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("Launch 3D Savings Vault", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(GoalPreset.entries, key = { it.key }) { preset ->
-                    val selected = selectedPreset == preset
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (selected) CyberViolet.copy(alpha = 0.22f)
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, if (selected) CyberViolet else Color.Transparent),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable {
-                                selectedPreset = preset
-                                if (preset != GoalPreset.CUSTOM) title = preset.label
-                            }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(GoalPreset.entries, key = { it.key }) { preset ->
+                        val selected = selectedPreset == preset
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (selected) CyberViolet.copy(alpha = 0.22f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, if (selected) CyberViolet else Color.Transparent),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    selectedPreset = preset
+                                    if (preset != GoalPreset.CUSTOM) title = preset.label
+                                }
                         ) {
-                            Icon(goalPresetIcon(preset), contentDescription = preset.label, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(preset.label, style = MaterialTheme.typography.labelMedium)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(goalPresetIcon(preset), contentDescription = preset.label, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(preset.label, style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                     }
                 }
-            }
 
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it.take(60) },
-                label = { Text("Goal Name") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("goal_title_input")
-            )
-
-            OutlinedTextField(
-                value = targetText,
-                onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) targetText = it },
-                label = { Text("Target Amount ($currencySymbol)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("goal_target_input")
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
-                    value = initialText,
-                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) initialText = it },
-                    label = { Text("Starting Saved") },
+                    value = title,
+                    onValueChange = { title = it.take(60) },
+                    label = { Text("Goal Name") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("goal_title_input")
+                )
+
+                OutlinedTextField(
+                    value = targetText,
+                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) targetText = it },
+                    label = { Text("Target Amount ($currencySymbol)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("goal_target_input")
                 )
-                OutlinedTextField(
-                    value = targetMonth,
-                    onValueChange = { targetMonth = it.take(20) },
-                    label = { Text("Target Date") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
-            val targetAmt = targetText.toDoubleOrNull() ?: 0.0
-            val initialAmt = initialText.toDoubleOrNull() ?: 0.0
-            SavingActionButton(
-                label = "Create Goal",
-                isSaving = isSaving,
-                enabled = title.isNotBlank() && targetAmt > 0.0,
-                onClick = {
-                    onSave(clientDocId, title.trim(), selectedPreset, targetAmt, initialAmt, targetMonth.trim())
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("save_goal_button")
-            )
-            Spacer(Modifier.height(20.dp))
+                AdaptivePairLayout(
+                    stackVertically = metrics.shouldStackTightPairs,
+                    horizontalSpacing = 10.dp,
+                    verticalSpacing = 10.dp,
+                    first = { fieldMod ->
+                        OutlinedTextField(
+                            value = initialText,
+                            onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) initialText = it },
+                            label = { Text("Starting Saved", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldMod
+                        )
+                    },
+                    second = { fieldMod ->
+                        OutlinedTextField(
+                            value = targetMonth,
+                            onValueChange = { targetMonth = it.take(20) },
+                            label = { Text("Target Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = fieldMod
+                        )
+                    }
+                )
+
+                val targetAmt = targetText.toDoubleOrNull() ?: 0.0
+                val initialAmt = initialText.toDoubleOrNull() ?: 0.0
+                SavingActionButton(
+                    label = "Create Goal",
+                    isSaving = isSaving,
+                    enabled = title.isNotBlank() && targetAmt > 0.0,
+                    onClick = {
+                        onSave(clientDocId, title.trim(), selectedPreset, targetAmt, initialAmt, targetMonth.trim())
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("save_goal_button")
+                )
+                Spacer(Modifier.height(20.dp))
+            }
         }
     }
 }
@@ -866,6 +939,9 @@ private fun ContributeGoalSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -875,19 +951,20 @@ private fun ContributeGoalSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            Row(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                presets.forEach { preset ->
+                items(presets, key = { it.toInt() }) { preset ->
                     OutlinedButton(
                         onClick = { amountText = preset.toInt().toString() },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                        modifier = Modifier.weight(1f)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Text(
                             text = "+$currencySymbol${preset.toInt()}",
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }

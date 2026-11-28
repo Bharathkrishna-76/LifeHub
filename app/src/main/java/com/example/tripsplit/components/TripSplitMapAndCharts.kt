@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FlightTakeoff
@@ -75,31 +77,34 @@ fun CompactTripRouteStrip(
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.inkPrimary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 110.dp)
             )
             Canvas(
                 modifier = Modifier
                     .weight(1f)
+                    .widthIn(min = 24.dp)
                     .height(10.dp)
             ) {
                 val y = size.height / 2f
                 drawLine(
                     color = colors.forest.copy(alpha = 0.45f),
                     start = Offset(4f, y),
-                    end = Offset(size.width - 4f, y),
+                    end = Offset((size.width - 4f).coerceAtLeast(4f), y),
                     strokeWidth = 2.5f,
                     cap = StrokeCap.Round,
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
                 )
                 drawCircle(color = colors.forest, radius = 3.5f, center = Offset(4f, y))
-                drawCircle(color = colors.accent, radius = 4f, center = Offset(size.width - 4f, y))
+                drawCircle(color = colors.accent, radius = 4f, center = Offset((size.width - 4f).coerceAtLeast(4f), y))
             }
             Text(
                 text = trip.destination,
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.inkPrimary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 110.dp)
             )
             Icon(
                 imageVector = Icons.Rounded.LocationOn,
@@ -191,6 +196,7 @@ fun SpendingBreakdownChartCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -203,28 +209,39 @@ fun SpendingBreakdownChartCard(
                             Text(
                                 text = slice.category.label,
                                 style = MaterialTheme.typography.titleSmall,
-                                color = colors.inkPrimary
+                                color = colors.inkPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                             Text(
                                 text = "(${slice.count})",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = colors.inkMuted
+                                color = colors.inkMuted,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
                                 text = formatTripMoney(slice.amount, currencySymbol),
                                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
-                                color = colors.inkPrimary
+                                color = colors.inkPrimary,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             Text(
                                 text = "${(slice.percentage * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = colors.inkMuted
+                                color = colors.inkMuted,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

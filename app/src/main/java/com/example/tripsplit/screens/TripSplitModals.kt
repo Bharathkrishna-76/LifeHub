@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -70,6 +71,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.tripsplit.components.TravelerMonogramBadge
 import com.example.tripsplit.components.TripOutlinedButton
@@ -89,6 +91,8 @@ import com.example.tripsplit.domain.TripMember
 import com.example.tripsplit.domain.WalletEntryType
 import com.example.tripsplit.theme.LocalTripSplitColors
 import com.example.tripsplit.theme.TripMonoFont
+import com.example.ui.components.AdaptivePairLayout
+import com.example.ui.components.rememberResponsiveMetrics
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -139,15 +143,17 @@ fun CreateTripSheet(
         containerColor = colors.canvas,
         contentColor = colors.inkPrimary
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 18.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = responsive.horizontalPadding, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
             Text(
                 text = "Create Trip",
                 style = MaterialTheme.typography.headlineLarge,
@@ -235,24 +241,31 @@ fun CreateTripSheet(
                 testTag = "ts_create_trip_title"
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TripField(
-                    value = origin,
-                    onValueChange = { origin = it },
-                    label = "Origin",
-                    placeholder = "Bengaluru",
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_origin"
-                )
-                TripField(
-                    value = destination,
-                    onValueChange = { destination = it },
-                    label = "Destination",
-                    placeholder = "North Goa",
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_destination"
-                )
-            }
+            AdaptivePairLayout(
+                stackVertically = responsive.shouldStackTightPairs,
+                horizontalSpacing = 10.dp,
+                verticalSpacing = 10.dp,
+                first = { pairMod ->
+                    TripField(
+                        value = origin,
+                        onValueChange = { origin = it },
+                        label = "Origin",
+                        placeholder = "Bengaluru",
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_origin"
+                    )
+                },
+                second = { pairMod ->
+                    TripField(
+                        value = destination,
+                        onValueChange = { destination = it },
+                        label = "Destination",
+                        placeholder = "North Goa",
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_destination"
+                    )
+                }
+            )
 
             TripField(
                 value = waypointsText,
@@ -262,29 +275,41 @@ fun CreateTripSheet(
                 testTag = "ts_create_trip_waypoints"
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TripField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = "Start Date",
-                    placeholder = "12 Dec",
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_start"
-                )
-                TripField(
-                    value = endDate,
-                    onValueChange = { endDate = it },
-                    label = "End Date",
-                    placeholder = "17 Dec",
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_end"
-                )
-            }
+            AdaptivePairLayout(
+                stackVertically = responsive.shouldStackTightPairs,
+                horizontalSpacing = 10.dp,
+                verticalSpacing = 10.dp,
+                first = { pairMod ->
+                    TripField(
+                        value = startDate,
+                        onValueChange = { startDate = it },
+                        label = "Start Date",
+                        placeholder = "12 Dec",
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_start"
+                    )
+                },
+                second = { pairMod ->
+                    TripField(
+                        value = endDate,
+                        onValueChange = { endDate = it },
+                        label = "End Date",
+                        placeholder = "17 Dec",
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_end"
+                    )
+                }
+            )
 
             // Currency Selector
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Currency", style = MaterialTheme.typography.labelMedium, color = colors.inkMuted)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     currencies.forEach { sym ->
                         val active = selectedCurrency == sym
                         Surface(
@@ -306,26 +331,33 @@ fun CreateTripSheet(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TripField(
-                    value = budgetText,
-                    onValueChange = { budgetText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = "Budget ($selectedCurrency)",
-                    placeholder = "40000",
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_budget"
-                )
-                TripField(
-                    value = walletText,
-                    onValueChange = { walletText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = "Start Wallet (opt.)",
-                    placeholder = "0",
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_create_trip_wallet"
-                )
-            }
+            AdaptivePairLayout(
+                stackVertically = responsive.shouldStackTightPairs,
+                horizontalSpacing = 10.dp,
+                verticalSpacing = 10.dp,
+                first = { pairMod ->
+                    TripField(
+                        value = budgetText,
+                        onValueChange = { budgetText = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = "Budget ($selectedCurrency)",
+                        placeholder = "40000",
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_budget"
+                    )
+                },
+                second = { pairMod ->
+                    TripField(
+                        value = walletText,
+                        onValueChange = { walletText = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = "Start Wallet (opt.)",
+                        placeholder = "0",
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = pairMod,
+                        testTag = "ts_create_trip_wallet"
+                    )
+                }
+            )
 
             // Quick Budget Slider
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -463,6 +495,7 @@ fun CreateTripSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
         }
+        }
     }
 }
 
@@ -553,48 +586,57 @@ fun AddEditTripExpenseSheet(
         containerColor = colors.canvas,
         contentColor = colors.inkPrimary
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 18.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = if (existingExpense == null) "Add Trip Expense" else "Edit Expense",
-                style = MaterialTheme.typography.headlineLarge,
-                color = colors.inkPrimary
-            )
-
-            TripField(
-                value = title,
-                onValueChange = { title = it },
-                label = "Description",
-                placeholder = "e.g., Dinner at beach shack",
-                testTag = "ts_expense_title_input"
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TripField(
-                    value = amountText,
-                    onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = "Amount ($currencySymbol)",
-                    placeholder = "0",
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_expense_amount_input"
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = responsive.horizontalPadding, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (existingExpense == null) "Add Trip Expense" else "Edit Expense",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = colors.inkPrimary
                 )
+
                 TripField(
-                    value = locationNote,
-                    onValueChange = { locationNote = it },
-                    label = "Place (opt.)",
-                    placeholder = "Old Town",
-                    modifier = Modifier.weight(1f),
-                    testTag = "ts_expense_location_input"
+                    value = title,
+                    onValueChange = { title = it },
+                    label = "Description",
+                    placeholder = "e.g., Dinner at beach shack",
+                    testTag = "ts_expense_title_input"
                 )
-            }
+
+                AdaptivePairLayout(
+                    stackVertically = responsive.shouldStackTightPairs,
+                    horizontalSpacing = 10.dp,
+                    verticalSpacing = 10.dp,
+                    first = { pairMod ->
+                        TripField(
+                            value = amountText,
+                            onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = "Amount ($currencySymbol)",
+                            placeholder = "0",
+                            keyboardType = KeyboardType.Decimal,
+                            modifier = pairMod,
+                            testTag = "ts_expense_amount_input"
+                        )
+                    },
+                    second = { pairMod ->
+                        TripField(
+                            value = locationNote,
+                            onValueChange = { locationNote = it },
+                            label = "Place (opt.)",
+                            placeholder = "Old Town",
+                            modifier = pairMod,
+                            testTag = "ts_expense_location_input"
+                        )
+                    }
+                )
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Category", style = MaterialTheme.typography.labelMedium, color = colors.inkMuted)
@@ -738,7 +780,10 @@ fun AddEditTripExpenseSheet(
                                     style = MaterialTheme.typography.labelLarge,
                                     color = if (selected) Color.White else colors.inkSecondary,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                                 )
                             }
                         }
@@ -850,6 +895,7 @@ fun AddEditTripExpenseSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
         }
+        }
     }
 }
 
@@ -877,6 +923,7 @@ fun TopUpWalletSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 18.dp, vertical = 6.dp),
@@ -1004,6 +1051,7 @@ fun InviteMembersSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 18.dp, vertical = 6.dp),
@@ -1015,50 +1063,52 @@ fun InviteMembersSheet(
                 color = colors.inkPrimary
             )
 
-            // Shareable Invite Code Box
+            // Shareable Invite Code Box (buttons stacked cleanly underneath so narrow phones never overflow)
             TripSageCard(padding = 14.dp) {
                 Text("Trip Invite Code", style = MaterialTheme.typography.bodySmall, color = colors.inkSecondary)
                 Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = inviteCode,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontFamily = TripMonoFont,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = colors.forest,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = inviteCode,
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontFamily = TripMonoFont,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = colors.forest
+                    TripOutlinedButton(
+                        text = if (copied) "Copied" else "Copy",
+                        icon = Icons.Rounded.ContentCopy,
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            clipboard?.setPrimaryClip(ClipData.newPlainText("TripSplit Invite Code", inviteCode))
+                            copied = true
+                        },
+                        modifier = Modifier.weight(1f),
+                        testTag = "ts_copy_invite_code_btn"
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TripOutlinedButton(
-                            text = if (copied) "Copied" else "Copy",
-                            icon = Icons.Rounded.ContentCopy,
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                clipboard?.setPrimaryClip(ClipData.newPlainText("TripSplit Invite Code", inviteCode))
-                                copied = true
-                            },
-                            testTag = "ts_copy_invite_code_btn"
-                        )
-                        TripOutlinedButton(
-                            text = "Share",
-                            icon = Icons.Rounded.Share,
-                            onClick = {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_TEXT,
-                                        "Join my trip \"${trip.title}\" (${trip.destination}) on TripSplit! Use invite code: $inviteCode"
-                                    )
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Trip Invite"))
-                            },
-                            testTag = "ts_share_invite_btn"
-                        )
-                    }
+                    TripOutlinedButton(
+                        text = "Share",
+                        icon = Icons.Rounded.Share,
+                        onClick = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "Join my trip \"${trip.title}\" (${trip.destination}) on TripSplit! Use invite code: $inviteCode"
+                                )
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Trip Invite"))
+                        },
+                        modifier = Modifier.weight(1f),
+                        testTag = "ts_share_invite_btn"
+                    )
                 }
             }
 
@@ -1108,7 +1158,9 @@ private fun TravelMemberMiniLabel(
         Text(
             text = member.name,
             style = MaterialTheme.typography.titleSmall,
-            color = colors.inkPrimary
+            color = colors.inkPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,10 +17,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Share
@@ -45,6 +50,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.export.ExportAndShareHelper
@@ -129,9 +135,12 @@ fun WrappedScreen(
 
         Column(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxSize()
+                .widthIn(max = 580.dp)
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .displayCutoutPadding()
                 .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
             // Story progress segments
@@ -162,7 +171,10 @@ fun WrappedScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.AutoAwesome,
                         contentDescription = null,
@@ -174,7 +186,9 @@ fun WrappedScreen(
                         text = "${wrapped.monthLabel.uppercase()} WRAPPED",
                         style = MaterialTheme.typography.labelMedium,
                         color = inkColor,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -209,7 +223,8 @@ fun WrappedScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 14.dp),
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     when (page) {
@@ -274,9 +289,14 @@ fun WrappedScreen(
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp)
+                            .defaultMinSize(minHeight = 50.dp)
                     ) {
-                        Text("Next Slide", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Next Slide",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 

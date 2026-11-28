@@ -13,16 +13,20 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.MoneyScoreBreakdown
 import com.example.ui.components.BackArrowAction
@@ -61,6 +66,7 @@ import com.example.ui.components.ExpandCollapseChevron
 import com.example.ui.components.HolographicCard
 import com.example.ui.components.MoreOptionsAction
 import com.example.ui.components.ShareActionButton
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.CyberViolet
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.HotCoral
@@ -137,6 +143,7 @@ fun MoneyScoreScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
                     title = {
@@ -146,9 +153,17 @@ fun MoneyScoreScreen(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = JetBrainsMonoFontFamily
                                 ),
-                                color = cyanAccent
+                                color = cyanAccent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Text("Money Score", color = inkColor, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Money Score",
+                                color = inkColor,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     },
                     navigationIcon = {
@@ -174,106 +189,136 @@ fun MoneyScoreScreen(
                 )
             }
         ) { innerPadding ->
-            LazyColumn(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .testTag("money_score_screen"),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
             ) {
-                item(key = "holo_gauge_card") {
-                    HolographicCard(
-                        cornerRadius = 30.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 760.dp)
+                        .testTag("money_score_screen"),
+                    contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item(key = "holo_gauge_card") {
+                        HolographicCard(
+                            cornerRadius = 30.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "PRISMATIC CREDIT TELEMETRY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = JetBrainsMonoFontFamily
-                                ),
-                                color = cyanAccent
-                            )
-                            Spacer(Modifier.height(18.dp))
-
-                            Box(
-                                modifier = Modifier.size(236.dp),
-                                contentAlignment = Alignment.Center
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Canvas(modifier = Modifier.size(236.dp)) {
-                                    val stroke = 18.dp.toPx()
-                                    val inset = stroke / 2f
-                                    val arcSize = Size(size.width - stroke, size.height - stroke)
-                                    drawArc(
-                                        color = trackTint,
-                                        startAngle = 150f,
-                                        sweepAngle = 240f,
-                                        useCenter = false,
-                                        topLeft = Offset(inset, inset),
-                                        size = arcSize,
-                                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                                    )
-                                    // Iridescent glow aura
-                                    drawArc(
-                                        brush = Brush.sweepGradient(
-                                            colors = listOf(HotCoral, SolarAmber, CyberCyan, CyberViolet, NeonMint)
-                                        ),
-                                        startAngle = 150f,
-                                        sweepAngle = 240f * (animScore.value / 100f).coerceIn(0f, 1f),
-                                        useCenter = false,
-                                        topLeft = Offset(inset, inset),
-                                        size = arcSize,
-                                        style = Stroke(width = stroke + 6.dp.toPx(), cap = StrokeCap.Round),
-                                        alpha = 0.25f
-                                    )
-                                    drawArc(
-                                        brush = Brush.sweepGradient(
-                                            colors = listOf(HotCoral, SolarAmber, CyberCyan, NeonMint)
-                                        ),
-                                        startAngle = 150f,
-                                        sweepAngle = 240f * (animScore.value / 100f).coerceIn(0f, 1f),
-                                        useCenter = false,
-                                        topLeft = Offset(inset, inset),
-                                        size = arcSize,
-                                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                                    )
-                                }
+                                Text(
+                                    text = "PRISMATIC CREDIT TELEMETRY",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontFamily = JetBrainsMonoFontFamily
+                                    ),
+                                    color = cyanAccent,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(18.dp))
 
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "${animScore.value.roundToInt()}",
-                                        style = MaterialTheme.typography.displayLarge.copy(
-                                            fontFamily = JetBrainsMonoFontFamily
-                                        ),
-                                        color = inkColor,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "out of 100",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = mutedColor
-                                    )
-                                    Spacer(Modifier.height(8.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(50),
-                                        color = tierColor.copy(alpha = 0.18f)
+                                BoxWithConstraints(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val gaugeSize = minOf(236.dp, maxWidth - 8.dp).coerceAtLeast(180.dp)
+                                    val scoreStyle = if (metrics.isLargeFont || gaugeSize < 210.dp) {
+                                        MaterialTheme.typography.displayMedium
+                                    } else {
+                                        MaterialTheme.typography.displayLarge
+                                    }
+
+                                    Box(
+                                        modifier = Modifier.size(gaugeSize),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = moneyScore.tierLabel.uppercase(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = tierColor,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
-                                        )
+                                        Canvas(modifier = Modifier.fillMaxSize()) {
+                                            val stroke = 16.dp.toPx()
+                                            val inset = stroke / 2f
+                                            val arcSize = Size(size.width - stroke, size.height - stroke)
+                                            drawArc(
+                                                color = trackTint,
+                                                startAngle = 150f,
+                                                sweepAngle = 240f,
+                                                useCenter = false,
+                                                topLeft = Offset(inset, inset),
+                                                size = arcSize,
+                                                style = Stroke(width = stroke, cap = StrokeCap.Round)
+                                            )
+                                            // Iridescent glow aura
+                                            drawArc(
+                                                brush = Brush.sweepGradient(
+                                                    colors = listOf(HotCoral, SolarAmber, CyberCyan, CyberViolet, NeonMint)
+                                                ),
+                                                startAngle = 150f,
+                                                sweepAngle = 240f * (animScore.value / 100f).coerceIn(0f, 1f),
+                                                useCenter = false,
+                                                topLeft = Offset(inset, inset),
+                                                size = arcSize,
+                                                style = Stroke(width = stroke + 6.dp.toPx(), cap = StrokeCap.Round),
+                                                alpha = 0.25f
+                                            )
+                                            drawArc(
+                                                brush = Brush.sweepGradient(
+                                                    colors = listOf(HotCoral, SolarAmber, CyberCyan, NeonMint)
+                                                ),
+                                                startAngle = 150f,
+                                                sweepAngle = 240f * (animScore.value / 100f).coerceIn(0f, 1f),
+                                                useCenter = false,
+                                                topLeft = Offset(inset, inset),
+                                                size = arcSize,
+                                                style = Stroke(width = stroke, cap = StrokeCap.Round)
+                                            )
+                                        }
+
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.padding(horizontal = 24.dp)
+                                        ) {
+                                            Text(
+                                                text = "${animScore.value.roundToInt()}",
+                                                style = scoreStyle.copy(
+                                                    fontFamily = JetBrainsMonoFontFamily
+                                                ),
+                                                color = inkColor,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                            Text(
+                                                text = "out of 100",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = mutedColor,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                            Spacer(Modifier.height(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(50),
+                                                color = tierColor.copy(alpha = 0.18f)
+                                            ) {
+                                                Text(
+                                                    text = moneyScore.tierLabel.uppercase(),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = tierColor,
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                            }
 
-                            Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(10.dp))
                             Text(
                                 text = moneyScore.summary,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -319,15 +364,20 @@ fun MoneyScoreScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = inkColor,
                                 fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
                             )
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "${factor.score} / ${factor.maxScore}",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontFamily = JetBrainsMonoFontFamily
                                 ),
                                 color = barColor,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             Spacer(Modifier.width(6.dp))
                             ExpandCollapseChevron(expanded = isExpanded, tint = cyanAccent)
@@ -376,6 +426,7 @@ fun MoneyScoreScreen(
                 }
 
                 item { Spacer(Modifier.height(24.dp)) }
+                }
             }
         }
     }

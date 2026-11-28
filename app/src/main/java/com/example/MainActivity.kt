@@ -5,22 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FlightTakeoff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,16 +14,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.auth.authStateFlow
 import com.example.domain.model.ThemeMode
@@ -122,16 +100,10 @@ fun LifeHubRootApp() {
                                 }
                             )
                         } else {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                key(user.uid) {
-                                    LifeHubMainShell(currentUserId = user.uid)
-                                }
-                                TripSplitModeLauncherPill(
-                                    onClick = { tripSplitPrefs.setAppMode(AppMode.TRIPSPLIT) },
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .navigationBarsPadding()
-                                        .padding(start = 14.dp, bottom = 92.dp)
+                            key(user.uid) {
+                                LifeHubMainShell(
+                                    currentUserId = user.uid,
+                                    onSwitchToTripSplit = { tripSplitPrefs.setAppMode(AppMode.TRIPSPLIT) }
                                 )
                             }
                         }
@@ -160,43 +132,6 @@ fun LifeHubRootApp() {
             LifeHubTheme(themeMode = settings.themeMode) {
                 AppUpdateHost(updateManager = updateManager, state = updateState)
             }
-        }
-    }
-}
-
-@Composable
-private fun TripSplitModeLauncherPill(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .defaultMinSize(minHeight = 48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .testTag("switch_to_tripsplit_mode_button"),
-        shape = RoundedCornerShape(12.dp),
-        color = Color(0xFF16241E),
-        border = BorderStroke(1.dp, Color(0xFFC8552B)),
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.FlightTakeoff,
-                contentDescription = stringResource(R.string.ts_mode_switch_to_tripsplit_cd),
-                tint = Color(0xFFE06E43),
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = stringResource(R.string.ts_mode_switch_to_tripsplit),
-                color = Color(0xFFFBF9F5),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }

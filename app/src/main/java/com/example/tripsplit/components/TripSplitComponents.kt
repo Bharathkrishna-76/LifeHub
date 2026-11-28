@@ -145,7 +145,10 @@ fun TripSectionHeader(
                 Text(
                     text = actionLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    color = colors.accent
+                    color = colors.accent,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -295,7 +298,7 @@ fun TripPrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
-            .defaultMinSize(minHeight = 46.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(
@@ -303,7 +306,7 @@ fun TripPrimaryButton(
             contentColor = colors.onAccent
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (icon != null) {
             Icon(
@@ -313,7 +316,12 @@ fun TripPrimaryButton(
             )
             Spacer(modifier = Modifier.width(6.dp))
         }
-        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -329,7 +337,7 @@ fun TripOutlinedButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier
-            .defaultMinSize(minHeight = 46.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, colors.borderSubtle),
@@ -337,7 +345,7 @@ fun TripOutlinedButton(
             containerColor = colors.surface,
             contentColor = colors.inkPrimary
         ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
     ) {
         if (icon != null) {
             Icon(
@@ -348,7 +356,12 @@ fun TripOutlinedButton(
             )
             Spacer(modifier = Modifier.width(6.dp))
         }
-        Text(text = text, style = MaterialTheme.typography.labelLarge)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -440,19 +453,24 @@ fun TripExpenseRow(
                         fontFamily = TripMonoFont,
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = colors.inkPrimary
+                    color = colors.inkPrimary,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = if (expense.paidFromWallet) "Wallet" else "Split ${expense.shares.size}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (expense.paidFromWallet) colors.forest else colors.inkMuted
+                    color = if (expense.paidFromWallet) colors.forest else colors.inkMuted,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
             if (onDelete != null) {
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(36.dp)
+                        .defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
                         .testTag("ts_delete_expense_${expense.id}")
                 ) {
                     Icon(

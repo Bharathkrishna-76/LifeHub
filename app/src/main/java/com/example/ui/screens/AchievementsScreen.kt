@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -54,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.domain.engine.AchievementEngine
 import com.example.domain.model.AchievementItem
@@ -131,6 +136,7 @@ fun AchievementsScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
                     title = {
@@ -140,9 +146,17 @@ fun AchievementsScreen(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = JetBrainsMonoFontFamily
                                 ),
-                                color = cyanAccent
+                                color = cyanAccent,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Text("Achievements & XP", color = inkColor, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Achievements & XP",
+                                color = inkColor,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     },
                     navigationIcon = {
@@ -163,42 +177,53 @@ fun AchievementsScreen(
                 )
             }
         ) { innerPadding ->
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 158.dp),
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
-                    .testTag("achievements_grid"),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Player XP Level Holographic Hero Banner
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    HolographicCard(
-                        cornerRadius = 28.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 152.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 840.dp)
+                        .testTag("achievements_grid"),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Player XP Level Holographic Hero Banner
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        HolographicCard(
+                            cornerRadius = 28.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column {
-                                Text(
-                                    text = "PLAYER RANK",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    color = amberAccent
-                                )
-                                Text(
-                                    text = "Level $playerLevel",
-                                    style = MaterialTheme.typography.displaySmall,
-                                    color = inkColor,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "PLAYER RANK",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontFamily = JetBrainsMonoFontFamily
+                                        ),
+                                        color = amberAccent,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Level $playerLevel",
+                                        style = MaterialTheme.typography.displaySmall,
+                                        color = inkColor,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(14.dp),
                                 color = limeAccent.copy(alpha = 0.2f)
@@ -301,6 +326,7 @@ fun AchievementsScreen(
                             }
                         }
                     }
+                    }
                 }
             }
         }
@@ -357,7 +383,8 @@ private fun BadgeCardInnerContent(
             color = inkColor,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            maxLines = 2
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -365,7 +392,8 @@ private fun BadgeCardInnerContent(
             style = MaterialTheme.typography.bodySmall,
             color = mutedColor,
             textAlign = TextAlign.Center,
-            maxLines = 3
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.height(10.dp))
         Surface(
@@ -376,6 +404,8 @@ private fun BadgeCardInnerContent(
                 text = "+${badge.xpReward} XP • ${badge.progressLabel}",
                 style = MaterialTheme.typography.labelSmall,
                 color = accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }

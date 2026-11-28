@@ -4,8 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -63,6 +66,7 @@ import com.example.tripsplit.theme.LocalTripSplitColors
 import com.example.tripsplit.theme.TripMonoFont
 import com.example.tripsplit.viewmodel.TripCardOverview
 import com.example.tripsplit.viewmodel.TripSplitUiState
+import com.example.ui.components.rememberResponsiveMetrics
 
 @Composable
 fun TripSplitTripsScreen(
@@ -85,58 +89,78 @@ fun TripSplitTripsScreen(
         }
     }
 
-    LazyColumn(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.canvas),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 92.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(colors.canvas)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Your Trips",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = colors.inkPrimary
-                    )
-                    Text(
-                        text = "${uiState.allTrips.size} trip${if (uiState.allTrips.size == 1) "" else "s"} planned",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.inkMuted
-                    )
-                }
-                TripPrimaryButton(
-                    text = "New Trip",
-                    icon = Icons.Rounded.Add,
-                    onClick = { onCreateTripClick(null) },
-                    testTag = "ts_trips_create_btn"
-                )
-            }
-        }
+        val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
 
-        if (uiState.allTrips.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = responsive.horizontalPadding,
+                end = responsive.horizontalPadding,
+                top = 8.dp,
+                bottom = 92.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TripFilterChip(
-                        label = "All (${uiState.allTrips.size})",
-                        selected = !favoritesOnly,
-                        onClick = { favoritesOnly = false },
-                        testTag = "ts_trips_filter_all"
-                    )
-                    TripFilterChip(
-                        label = "Favorites (${uiState.favoriteTripIds.size})",
-                        selected = favoritesOnly,
-                        onClick = { favoritesOnly = true },
-                        testTag = "ts_trips_filter_fav"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Your Trips",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = colors.inkPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${uiState.allTrips.size} trip${if (uiState.allTrips.size == 1) "" else "s"} planned",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.inkMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TripPrimaryButton(
+                        text = "New Trip",
+                        icon = Icons.Rounded.Add,
+                        onClick = { onCreateTripClick(null) },
+                        testTag = "ts_trips_create_btn"
                     )
                 }
             }
-        }
+
+            if (uiState.allTrips.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TripFilterChip(
+                            label = "All (${uiState.allTrips.size})",
+                            selected = !favoritesOnly,
+                            onClick = { favoritesOnly = false },
+                            testTag = "ts_trips_filter_all"
+                        )
+                        TripFilterChip(
+                            label = "Favorites (${uiState.favoriteTripIds.size})",
+                            selected = favoritesOnly,
+                            onClick = { favoritesOnly = true },
+                            testTag = "ts_trips_filter_fav"
+                        )
+                    }
+                }
+            }
 
         if (displayedTrips.isEmpty()) {
             item {
@@ -180,6 +204,7 @@ fun TripSplitTripsScreen(
                 )
             }
         }
+    }
     }
 
     pendingDelete?.let { target ->
@@ -371,10 +396,12 @@ private fun CleanTripCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f, fill = false),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
@@ -387,7 +414,9 @@ private fun CleanTripCard(
                             Text(
                                 text = "${trip.startDateLabel} – ${trip.endDateLabel}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = colors.inkMuted
+                                color = colors.inkMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Row(
@@ -403,15 +432,21 @@ private fun CleanTripCard(
                             Text(
                                 text = "${overview.memberCount}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = colors.inkMuted
+                                color = colors.inkMuted,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
                     if (trip.totalBudget > 0.0) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "of ${formatTripMoney(trip.totalBudget, trip.currencySymbol)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = colors.inkMuted
+                            color = colors.inkMuted,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

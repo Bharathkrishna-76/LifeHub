@@ -9,11 +9,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +47,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.ui.components.AdaptivePairLayout
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.LocalLifeHubColors
 
 private const val DEFAULT_APK_RELEASES_URL =
@@ -201,7 +204,7 @@ fun ReferAppCard(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .defaultMinSize(minHeight = 48.dp)
                     .testTag("refer_app_share_button")
             ) {
                 Icon(
@@ -212,47 +215,61 @@ fun ReferAppCard(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.refer_app_share_button),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { copyDownloadLink() },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("refer_app_copy_link_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.refer_app_copy_button))
-                }
-
-                OutlinedButton(
-                    onClick = { openDownloadLink() },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("refer_app_open_link_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.OpenInBrowser,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.refer_app_open_button))
-                }
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+                AdaptivePairLayout(
+                    stackVertically = metrics.shouldStackTightPairs,
+                    horizontalSpacing = 10.dp,
+                    verticalSpacing = 10.dp,
+                    first = { btnMod ->
+                        OutlinedButton(
+                            onClick = { copyDownloadLink() },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = btnMod
+                                .defaultMinSize(minHeight = 48.dp)
+                                .testTag("refer_app_copy_link_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ContentCopy,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.refer_app_copy_button),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    second = { btnMod ->
+                        OutlinedButton(
+                            onClick = { openDownloadLink() },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = btnMod
+                                .defaultMinSize(minHeight = 48.dp)
+                                .testTag("refer_app_open_link_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.OpenInBrowser,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.refer_app_open_button),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                )
             }
         }
     }

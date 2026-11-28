@@ -19,13 +19,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +40,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -75,6 +80,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.ReminderCategory
 import com.example.domain.model.ReminderItem
@@ -90,6 +96,7 @@ import com.example.ui.components.FilterActionButton
 import com.example.ui.components.MoreOptionsAction
 import com.example.ui.components.SavingActionButton
 import com.example.ui.components.SearchAction
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.CyberViolet
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.HotCoral
@@ -139,6 +146,7 @@ fun PlannerScreen(
 
     Scaffold(
         containerColor = cs.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -160,75 +168,85 @@ fun PlannerScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            // Morphing Dynamic Island Workspace Filter Capsule
-            val capsuleBg = if (extended.isDark) Color(0xFF0A0D16) else Color.White
-            val capsuleInk = if (extended.isDark) Color.White else cs.onSurface
-            val capsuleMuted = if (extended.isDark) Color(0xFFB5C0D9) else extended.mutedText
-            val tabAccent = if (activeTab == 0) extended.accentCyan else extended.accentAmber
-            Surface(
-                shape = RoundedCornerShape(if (islandDrawerOpen) 26.dp else 50.dp),
-                color = capsuleBg,
-                border = BorderStroke(
-                    width = 1.dp,
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            extended.accentCyan.copy(alpha = 0.55f),
-                            extended.accentViolet.copy(alpha = 0.55f),
-                            extended.accentMint.copy(alpha = 0.55f)
-                        )
-                    )
-                ),
-                shadowElevation = if (extended.isDark) 6.dp else 4.dp,
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
-                    .testTag("planner_dynamic_island")
+                    .fillMaxSize()
+                    .padding(horizontal = metrics.horizontalPadding, vertical = 10.dp)
             ) {
-                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { islandDrawerOpen = !islandDrawerOpen },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(9.dp)
-                                    .clip(CircleShape)
-                                    .background(tabAccent)
+                // Morphing Dynamic Island Workspace Filter Capsule
+                val capsuleBg = if (extended.isDark) Color(0xFF0A0D16) else Color.White
+                val capsuleInk = if (extended.isDark) Color.White else cs.onSurface
+                val capsuleMuted = if (extended.isDark) Color(0xFFB5C0D9) else extended.mutedText
+                val tabAccent = if (activeTab == 0) extended.accentCyan else extended.accentAmber
+                Surface(
+                    shape = RoundedCornerShape(if (islandDrawerOpen) 26.dp else 50.dp),
+                    color = capsuleBg,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                extended.accentCyan.copy(alpha = 0.55f),
+                                extended.accentViolet.copy(alpha = 0.55f),
+                                extended.accentMint.copy(alpha = 0.55f)
                             )
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = if (activeTab == 0) "KANBAN FLOW" else "BILL RADAR",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    color = tabAccent,
-                                    fontWeight = FontWeight.Bold
+                        )
+                    ),
+                    shadowElevation = if (extended.isDark) 6.dp else 4.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                        .testTag("planner_dynamic_island")
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { islandDrawerOpen = !islandDrawerOpen },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .clip(CircleShape)
+                                        .background(tabAccent)
                                 )
-                                Text(
-                                    text = if (activeTab == 0) {
-                                        "${state.tasks.count { it.status != TaskStatus.DONE }} active • ${state.tasks.count { it.status == TaskStatus.DONE }} shipped"
-                                    } else {
-                                        "${state.reminders.count { !it.paid }} upcoming alerts"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = capsuleMuted
-                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (activeTab == 0) "KANBAN FLOW" else "BILL RADAR",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontFamily = JetBrainsMonoFontFamily
+                                        ),
+                                        color = tabAccent,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = if (activeTab == 0) {
+                                            "${state.tasks.count { it.status != TaskStatus.DONE }} active • ${state.tasks.count { it.status == TaskStatus.DONE }} shipped"
+                                        } else {
+                                            "${state.reminders.count { !it.paid }} upcoming alerts"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = capsuleMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
-                        }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             SearchAction(
@@ -305,7 +323,12 @@ fun PlannerScreen(
                     shape = SegmentedButtonDefaults.itemShape(0, 2),
                     modifier = Modifier.testTag("planner_tab_tasks")
                 ) {
-                    Text("Tasks (${state.tasks.size})")
+                    Text(
+                        text = "Tasks (${state.tasks.size})",
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 SegmentedButton(
                     selected = activeTab == 1,
@@ -313,7 +336,12 @@ fun PlannerScreen(
                     shape = SegmentedButtonDefaults.itemShape(1, 2),
                     modifier = Modifier.testTag("planner_tab_reminders")
                 ) {
-                    Text("Reminders (${state.reminders.count { !it.paid }})")
+                    Text(
+                        text = "Reminders (${state.reminders.count { !it.paid }})",
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
 
@@ -351,6 +379,7 @@ fun PlannerScreen(
                         onAddClick = { showAddReminderSheet = true }
                     )
                 }
+            }
             }
         }
     }
@@ -406,7 +435,12 @@ private fun KanbanTasksSection(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             FilterChip(
                 selected = cadenceFilter == null,
                 onClick = { onSelectCadence(null) },
@@ -432,23 +466,26 @@ private fun KanbanTasksSection(
                 onAction = onAddClick
             )
         } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TaskStatus.entries.forEach { status ->
-                    val columnTasks = filtered.filter { it.status == status }
-                    KanbanColumn(
-                        status = status,
-                        tasks = columnTasks,
-                        starredIds = starredIds,
-                        onToggleStar = onToggleStar,
-                        onMoveStatus = onMoveStatus,
-                        onDeleteTask = onDeleteTask,
-                        modifier = Modifier.width(284.dp)
-                    )
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val laneWidth = (maxWidth * 0.86f).coerceIn(248.dp, 320.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TaskStatus.entries.forEach { status ->
+                        val columnTasks = filtered.filter { it.status == status }
+                        KanbanColumn(
+                            status = status,
+                            tasks = columnTasks,
+                            starredIds = starredIds,
+                            onToggleStar = onToggleStar,
+                            onMoveStatus = onMoveStatus,
+                            onDeleteTask = onDeleteTask,
+                            modifier = Modifier.width(laneWidth)
+                        )
+                    }
                 }
             }
         }
@@ -594,7 +631,11 @@ private fun KanbanTaskCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = priorityColor.copy(alpha = 0.16f)
@@ -603,6 +644,8 @@ private fun KanbanTaskCard(
                             text = task.priority.label.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             color = priorityColor,
+                            maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -614,6 +657,8 @@ private fun KanbanTaskCard(
                             text = task.cadence.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = cs.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -641,7 +686,9 @@ private fun KanbanTaskCard(
                 text = task.title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null
+                textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
             if (task.notes.isNotBlank()) {
@@ -650,7 +697,8 @@ private fun KanbanTaskCard(
                     text = task.notes,
                     style = MaterialTheme.typography.bodySmall,
                     color = cs.onSurfaceVariant,
-                    maxLines = 2
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -787,53 +835,103 @@ private fun RemindersSection(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 10.dp)
                         ) {
-                            Checkbox(
-                                checked = rem.paid,
-                                onCheckedChange = { onTogglePaid(rem) }
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = rem.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    textDecoration = if (rem.paid) TextDecoration.LineThrough else null
-                                )
-                                Text(
-                                    text = "${rem.category.label} • ${DateAndFormatUtils.formatShortDate(rem.dueDateEpochMs)}" +
-                                        if (rem.recurringMonthly) " • Monthly" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = extended.mutedText
-                                )
+                            val remMetrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+                            val stackMeta = remMetrics.isNarrowPhone || remMetrics.isLargeFont
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = rem.paid,
+                                        onCheckedChange = { onTogglePaid(rem) }
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = rem.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            textDecoration = if (rem.paid) TextDecoration.LineThrough else null,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${rem.category.label} • ${DateAndFormatUtils.formatShortDate(rem.dueDateEpochMs)}" +
+                                                if (rem.recurringMonthly) " • Monthly" else "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = extended.mutedText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    if (!stackMeta) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text(
+                                                text = DateAndFormatUtils.formatCurrency(rem.amount, currencySymbol),
+                                                style = MaterialTheme.typography.titleSmall.copy(
+                                                    fontFamily = JetBrainsMonoFontFamily
+                                                ),
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                            Text(
+                                                text = statusText,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = statusColor,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
+                                    FavoriteToggleIcon(
+                                        isFavorite = isStarred,
+                                        activeColor = HotCoral,
+                                        onToggle = { onToggleStar(rem.id) }
+                                    )
+                                    MoreOptionsAction(
+                                        options = listOf(
+                                            (if (rem.paid) "Mark Unpaid" else "Mark Paid") to { onTogglePaid(rem) },
+                                            "Delete Reminder" to { onDeleteReminder(rem.id) }
+                                        )
+                                    )
+                                }
+                                if (stackMeta) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 48.dp, end = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = DateAndFormatUtils.formatCurrency(rem.amount, currencySymbol),
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontFamily = JetBrainsMonoFontFamily
+                                            ),
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                        Text(
+                                            text = statusText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = statusColor,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = DateAndFormatUtils.formatCurrency(rem.amount, currencySymbol),
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = statusText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = statusColor
-                                )
-                            }
-                            FavoriteToggleIcon(
-                                isFavorite = isStarred,
-                                activeColor = HotCoral,
-                                onToggle = { onToggleStar(rem.id) }
-                            )
-                            MoreOptionsAction(
-                                options = listOf(
-                                    (if (rem.paid) "Mark Unpaid" else "Mark Paid") to { onTogglePaid(rem) },
-                                    "Delete Reminder" to { onDeleteReminder(rem.id) }
-                                )
-                            )
                         }
                     }
                 }
@@ -864,6 +962,9 @@ private fun AddTaskSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -880,7 +981,12 @@ private fun AddTaskSheet(
                     .testTag("task_title_input")
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TaskCadence.entries.forEach { item ->
                     FilterChip(
                         selected = cadence == item,
@@ -890,7 +996,12 @@ private fun AddTaskSheet(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TaskPriority.entries.forEach { item ->
                     FilterChip(
                         selected = priority == item,
@@ -900,7 +1011,12 @@ private fun AddTaskSheet(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf(0 to "Today", 1 to "Tomorrow", 3 to "+3 Days", 7 to "Next Week").forEach { (d, lbl) ->
                     FilterChip(
                         selected = daysFromNow == d,
@@ -967,6 +1083,9 @@ private fun AddReminderSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -1003,7 +1122,12 @@ private fun AddReminderSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf(1 to "Tomorrow", 3 to "In 3 Days", 7 to "In 7 Days", 30 to "In 30 Days").forEach { (d, lbl) ->
                     FilterChip(
                         selected = daysFromNow == d,

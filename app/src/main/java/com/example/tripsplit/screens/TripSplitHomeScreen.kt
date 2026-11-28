@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,6 +81,7 @@ import com.example.tripsplit.theme.LocalTripSplitColors
 import com.example.tripsplit.theme.TripMonoFont
 import com.example.tripsplit.viewmodel.TripCardOverview
 import com.example.tripsplit.viewmodel.TripSplitUiState
+import com.example.ui.components.rememberResponsiveMetrics
 import java.util.Calendar
 import kotlin.math.abs
 
@@ -187,18 +190,28 @@ fun TripSplitHomeScreen(
 
     val isFavorite = uiState.favoriteTripIds.contains(activeTrip.id)
 
-    PullToRefreshBox(
-        isRefreshing = uiState.isRefreshing,
-        onRefresh = onRefresh,
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(colors.canvas)
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 92.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize()
         ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = responsive.horizontalPadding,
+                    end = responsive.horizontalPadding,
+                    top = 8.dp,
+                    bottom = 92.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // 1. Small Single-Line Greeting + Inline New Trip action
             item(key = "greeting_row") {
                 Row(
@@ -251,54 +264,110 @@ fun TripSplitHomeScreen(
                     memberCount = uiState.members.size,
                     metrics = metrics,
                     isFavorite = isFavorite,
+                    isNarrowPhone = responsive.isNarrowPhone,
+                    stackBudgetRow = responsive.shouldStackTightPairs,
                     onClick = onOpenTripsTab,
                     onToggleFavorite = { onToggleFavorite(activeTrip.id) },
                     onShare = onShareTripSummary
                 )
             }
 
-            // 3. Compact 4-Column Quick Actions Grid (never overflows horizontally)
+            // 3. Adaptive Quick Actions Grid (2x2 on narrow/large-font screens, 4-column otherwise)
             item(key = "quick_actions_grid") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CompactQuickActionButton(
-                        label = "Add Expense",
-                        icon = Icons.Rounded.ReceiptLong,
-                        iconTint = colors.accent,
-                        iconBg = colors.accentSoft,
-                        onClick = onAddExpenseClick,
-                        testTag = "ts_quick_add_expense",
-                        modifier = Modifier.weight(1f)
-                    )
-                    CompactQuickActionButton(
-                        label = "Settle Up",
-                        icon = Icons.Rounded.Handshake,
-                        iconTint = colors.forest,
-                        iconBg = colors.forestSoft,
-                        onClick = onOpenSquadTab,
-                        testTag = "ts_quick_settle_up",
-                        modifier = Modifier.weight(1f)
-                    )
-                    CompactQuickActionButton(
-                        label = "Trip Wallet",
-                        icon = Icons.Rounded.AccountBalanceWallet,
-                        iconTint = colors.forest,
-                        iconBg = colors.forestSoft,
-                        onClick = onTopUpWalletClick,
-                        testTag = "ts_quick_top_up_wallet",
-                        modifier = Modifier.weight(1f)
-                    )
-                    CompactQuickActionButton(
-                        label = "Invite",
-                        icon = Icons.Rounded.GroupAdd,
-                        iconTint = colors.inkPrimary,
-                        iconBg = colors.surfaceMuted,
-                        onClick = onInviteMembersClick,
-                        testTag = "ts_quick_add_traveler",
-                        modifier = Modifier.weight(1f)
-                    )
+                if (responsive.shouldStackTightPairs) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CompactQuickActionButton(
+                                label = "Add Expense",
+                                icon = Icons.Rounded.ReceiptLong,
+                                iconTint = colors.accent,
+                                iconBg = colors.accentSoft,
+                                onClick = onAddExpenseClick,
+                                testTag = "ts_quick_add_expense",
+                                modifier = Modifier.weight(1f)
+                            )
+                            CompactQuickActionButton(
+                                label = "Settle Up",
+                                icon = Icons.Rounded.Handshake,
+                                iconTint = colors.forest,
+                                iconBg = colors.forestSoft,
+                                onClick = onOpenSquadTab,
+                                testTag = "ts_quick_settle_up",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CompactQuickActionButton(
+                                label = "Trip Wallet",
+                                icon = Icons.Rounded.AccountBalanceWallet,
+                                iconTint = colors.forest,
+                                iconBg = colors.forestSoft,
+                                onClick = onTopUpWalletClick,
+                                testTag = "ts_quick_top_up_wallet",
+                                modifier = Modifier.weight(1f)
+                            )
+                            CompactQuickActionButton(
+                                label = "Invite",
+                                icon = Icons.Rounded.GroupAdd,
+                                iconTint = colors.inkPrimary,
+                                iconBg = colors.surfaceMuted,
+                                onClick = onInviteMembersClick,
+                                testTag = "ts_quick_add_traveler",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CompactQuickActionButton(
+                            label = "Add Expense",
+                            icon = Icons.Rounded.ReceiptLong,
+                            iconTint = colors.accent,
+                            iconBg = colors.accentSoft,
+                            onClick = onAddExpenseClick,
+                            testTag = "ts_quick_add_expense",
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactQuickActionButton(
+                            label = "Settle Up",
+                            icon = Icons.Rounded.Handshake,
+                            iconTint = colors.forest,
+                            iconBg = colors.forestSoft,
+                            onClick = onOpenSquadTab,
+                            testTag = "ts_quick_settle_up",
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactQuickActionButton(
+                            label = "Trip Wallet",
+                            icon = Icons.Rounded.AccountBalanceWallet,
+                            iconTint = colors.forest,
+                            iconBg = colors.forestSoft,
+                            onClick = onTopUpWalletClick,
+                            testTag = "ts_quick_top_up_wallet",
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactQuickActionButton(
+                            label = "Invite",
+                            icon = Icons.Rounded.GroupAdd,
+                            iconTint = colors.inkPrimary,
+                            iconBg = colors.surfaceMuted,
+                            onClick = onInviteMembersClick,
+                            testTag = "ts_quick_add_traveler",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -449,6 +518,7 @@ fun TripSplitHomeScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -457,6 +527,8 @@ private fun CompactActiveTripCard(
     memberCount: Int,
     metrics: TripSummaryMetrics,
     isFavorite: Boolean,
+    isNarrowPhone: Boolean,
+    stackBudgetRow: Boolean,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit
@@ -467,6 +539,7 @@ private fun CompactActiveTripCard(
         metrics.budgetProgress > 0.8f -> colors.warning
         else -> colors.forest
     }
+    val thumbSize = if (isNarrowPhone) 72.dp else 88.dp
 
     TripSurfaceCard(
         modifier = Modifier.testTag("ts_featured_trip_card"),
@@ -483,7 +556,7 @@ private fun CompactActiveTripCard(
                 contentDescription = trip.destination,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(width = 88.dp, height = 88.dp)
+                    .size(thumbSize)
                     .clip(RoundedCornerShape(10.dp))
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -496,12 +569,13 @@ private fun CompactActiveTripCard(
                     TripStatusBadge(
                         text = "Active Trip",
                         backgroundColor = colors.forestSoft,
-                        contentColor = colors.forest
+                        contentColor = colors.forest,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(36.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable(onClick = onToggleFavorite)
                                 .testTag("ts_hero_favorite_toggle"),
@@ -516,7 +590,7 @@ private fun CompactActiveTripCard(
                         }
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(36.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable(onClick = onShare)
                                 .testTag("ts_hero_share_btn"),
@@ -541,10 +615,12 @@ private fun CompactActiveTripCard(
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f, fill = false),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
@@ -575,7 +651,9 @@ private fun CompactActiveTripCard(
                         Text(
                             text = "$memberCount",
                             style = MaterialTheme.typography.bodySmall,
-                            color = colors.inkSecondary
+                            color = colors.inkSecondary,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -605,25 +683,55 @@ private fun CompactActiveTripCard(
         HorizontalDivider(color = colors.divider, thickness = 1.dp)
         Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Spent ${formatTripMoney(metrics.totalSpent, trip.currencySymbol)}",
-                style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
-                color = colors.inkPrimary
-            )
-            Text(
-                text = if (metrics.totalBudget > 0.0) {
-                    "Budget ${formatTripMoney(metrics.totalBudget, trip.currencySymbol)} (${(metrics.budgetProgress * 100).toInt()}%)"
-                } else {
-                    "No budget limit"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (metrics.isOverBudget) colors.danger else colors.inkMuted
-            )
+        val budgetText = if (metrics.totalBudget > 0.0) {
+            "Budget ${formatTripMoney(metrics.totalBudget, trip.currencySymbol)} (${(metrics.budgetProgress * 100).toInt()}%)"
+        } else {
+            "No budget limit"
+        }
+
+        if (stackBudgetRow) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Spent ${formatTripMoney(metrics.totalSpent, trip.currencySymbol)}",
+                    style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
+                    color = colors.inkPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = budgetText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (metrics.isOverBudget) colors.danger else colors.inkMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Spent ${formatTripMoney(metrics.totalSpent, trip.currencySymbol)}",
+                    style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
+                    color = colors.inkPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = budgetText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (metrics.isOverBudget) colors.danger else colors.inkMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         Spacer(modifier = Modifier.height(6.dp))
         Box(
@@ -717,7 +825,11 @@ private fun FinancialOverviewGridCard(
     }
 
     TripSurfaceCard(padding = 0.dp, cornerRadius = 14.dp) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
             StatCell(
                 label = "Total Expenses",
                 value = formatTripMoney(metrics.totalSpent, currencySymbol),
@@ -727,7 +839,7 @@ private fun FinancialOverviewGridCard(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(68.dp)
+                    .fillMaxHeight()
                     .background(colors.divider)
             )
             StatCell(
@@ -738,7 +850,11 @@ private fun FinancialOverviewGridCard(
             )
         }
         HorizontalDivider(color = colors.divider, thickness = 1.dp)
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
             StatCell(
                 label = balanceLabel,
                 value = if (abs(yourNetBalance) < 0.01) "Settled" else formatTripMoney(abs(yourNetBalance), currencySymbol),
@@ -748,7 +864,7 @@ private fun FinancialOverviewGridCard(
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(68.dp)
+                    .fillMaxHeight()
                     .background(colors.divider)
             )
             StatCell(
@@ -903,7 +1019,8 @@ private fun CompactSettlementRow(
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.inkPrimary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
@@ -916,29 +1033,40 @@ private fun CompactSettlementRow(
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.inkPrimary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
             }
             Text(
                 text = formatTripMoney(transfer.amount, currencySymbol),
                 style = MaterialTheme.typography.labelSmall,
-                color = colors.accent
+                color = colors.accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
         Surface(
             modifier = Modifier
+                .defaultMinSize(minHeight = 40.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onSettle)
                 .testTag("ts_settle_${transfer.fromMember.id}_${transfer.toMember.id}"),
             shape = RoundedCornerShape(8.dp),
             color = colors.forestSoft
         ) {
-            Text(
-                text = "Settle",
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.forest,
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-            )
+            ) {
+                Text(
+                    text = "Settle",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.forest,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
         }
     }
 }

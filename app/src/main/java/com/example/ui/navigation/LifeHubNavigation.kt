@@ -1,14 +1,26 @@
 package com.example.ui.navigation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Checklist
@@ -17,6 +29,7 @@ import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.FlightTakeoff
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Savings
@@ -29,6 +42,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,10 +51,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.R
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -96,7 +118,10 @@ private val primaryTabs = listOf(
 )
 
 @Composable
-fun LifeHubMainShell(currentUserId: String) {
+fun LifeHubMainShell(
+    currentUserId: String,
+    onSwitchToTripSplit: (() -> Unit)? = null
+) {
     val viewModel: LifeHubViewModel = viewModel(
         key = currentUserId,
         factory = viewModelFactory {
@@ -173,7 +198,7 @@ fun LifeHubMainShell(currentUserId: String) {
     val unpaidReminders = state.reminders.count { !it.paid }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val useNavRail = maxWidth >= 680.dp
+        val useNavRail = maxWidth >= 600.dp
 
         Scaffold(
             contentWindowInsets = WindowInsets.safeDrawing,
@@ -192,7 +217,14 @@ fun LifeHubMainShell(currentUserId: String) {
                                         contentDescription = tab.label
                                     )
                                 },
-                                label = { Text(tab.label) },
+                                label = {
+                                    Text(
+                                        text = tab.label,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
                                 modifier = Modifier.testTag(tab.testTag)
                             )
                         }
@@ -210,25 +242,50 @@ fun LifeHubMainShell(currentUserId: String) {
                         containerColor = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.fillMaxHeight()
                     ) {
-                        primaryTabs.forEach { tab ->
-                            val selected = currentRoute == tab.route
-                            NavigationRailItem(
-                                selected = selected,
-                                onClick = { navigateTopTab(tab.route) },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                        contentDescription = tab.label
-                                    )
-                                },
-                                label = { Text(tab.label) },
-                                modifier = Modifier.testTag(tab.testTag)
-                            )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            primaryTabs.forEach { tab ->
+                                val selected = currentRoute == tab.route
+                                NavigationRailItem(
+                                    selected = selected,
+                                    onClick = { navigateTopTab(tab.route) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
+                                            contentDescription = tab.label
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tab.label,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
+                                    modifier = Modifier.testTag(tab.testTag)
+                                )
+                            }
+                            if (onSwitchToTripSplit != null) {
+                                Spacer(Modifier.height(10.dp))
+                                TripSplitRailSwitchButton(onClick = onSwitchToTripSplit)
+                            }
                         }
                     }
                 }
 
-                Column(modifier = Modifier.weight(1f).fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     // Persistent morphing Dynamic Island Style bar across primary tabs
                     if (showChrome) {
                         DynamicIslandBar(
@@ -248,11 +305,24 @@ fun LifeHubMainShell(currentUserId: String) {
                             onOpenSettings = { navController.navigate(LifeHubRoutes.PROFILE) },
                             onOpenWrapped = { navController.navigate(LifeHubRoutes.WRAPPED) },
                             onOpenMoneyScore = { navController.navigate(LifeHubRoutes.MONEY_SCORE) },
-                            onOpenAchievements = { navController.navigate(LifeHubRoutes.ACHIEVEMENTS) }
+                            onOpenAchievements = { navController.navigate(LifeHubRoutes.ACHIEVEMENTS) },
+                            modifier = Modifier.widthIn(max = 840.dp)
                         )
                     }
 
-                    Box(modifier = Modifier.weight(1f).fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (showChrome) Modifier.widthIn(max = 840.dp) else Modifier
+                                )
+                        ) {
                         NavHost(
                             navController = navController,
                             startDestination = LifeHubRoutes.DASHBOARD
@@ -415,9 +485,95 @@ fun LifeHubMainShell(currentUserId: String) {
                                 )
                             }
                         }
+                        if (showChrome && !useNavRail && onSwitchToTripSplit != null) {
+                            TripSplitCompactLauncherPill(
+                                onClick = onSwitchToTripSplit,
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(start = 14.dp, bottom = 14.dp)
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+    }
+}
+
+@Composable
+private fun TripSplitCompactLauncherPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .testTag("switch_to_tripsplit_mode_button"),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF16241E),
+        border = BorderStroke(1.dp, Color(0xFFC8552B)),
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.FlightTakeoff,
+                contentDescription = stringResource(R.string.ts_mode_switch_to_tripsplit_cd),
+                tint = Color(0xFFE06E43),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = stringResource(R.string.ts_mode_switch_to_tripsplit),
+                color = Color(0xFFFBF9F5),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun TripSplitRailSwitchButton(
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .defaultMinSize(minWidth = 56.dp, minHeight = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .testTag("switch_to_tripsplit_mode_button"),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF16241E),
+        border = BorderStroke(1.dp, Color(0xFFC8552B))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.FlightTakeoff,
+                contentDescription = stringResource(R.string.ts_mode_switch_to_tripsplit_cd),
+                tint = Color(0xFFE06E43),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = "Trips",
+                color = Color(0xFFFBF9F5),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -16,22 +16,30 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -72,6 +80,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.HabitItem
 import com.example.domain.util.DateAndFormatUtils
@@ -89,6 +98,7 @@ import com.example.ui.components.FavoriteToggleIcon
 import com.example.ui.components.FilterActionButton
 import com.example.ui.components.MoreOptionsAction
 import com.example.ui.components.SavingActionButton
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalLifeHubColors
 import com.example.ui.theme.NeonMint
@@ -167,6 +177,7 @@ fun HabitScreen(
 
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { showAddSheet = true },
@@ -179,101 +190,139 @@ fun HabitScreen(
                 }
             }
         ) { innerPadding ->
-            LazyColumn(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .testTag("habit_list"),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Cyberpunk Terminal Header + Neon Activity Rings
-                item(key = "cyber_hero") {
-                    CyberpunkPanel(
-                        neonAccent = cyberCyan,
-                        secondaryAccent = cyberMagenta,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("habit_list"),
+                    contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Cyberpunk Terminal Header + Neon Activity Rings
+                    item(key = "cyber_hero") {
+                        CyberpunkPanel(
+                            neonAccent = cyberCyan,
+                            secondaryAccent = cyberMagenta,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "CYBERFIT // BIO-TELEMETRY",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    color = cyberCyan
-                                )
-                                Text(
-                                    text = "Habit Protocol",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = cyberInk,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp),
-                                    color = cyberYellow.copy(alpha = 0.16f),
-                                    border = BorderStroke(1.dp, cyberYellow)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "CYBERFIT // BIO-TELEMETRY",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontFamily = JetBrainsMonoFontFamily
+                                        ),
+                                        color = cyberCyan,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Habit Protocol",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = cyberInk,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp),
+                                        color = cyberYellow.copy(alpha = 0.16f),
+                                        border = BorderStroke(1.dp, cyberYellow)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.LocalFireDepartment,
-                                            contentDescription = "Streak flame",
-                                            tint = cyberYellow,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            text = "${maxCurrentStreak}D",
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                fontFamily = JetBrainsMonoFontFamily
-                                            ),
-                                            color = cyberYellow,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.LocalFireDepartment,
+                                                contentDescription = "Streak flame",
+                                                tint = cyberYellow,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = "${maxCurrentStreak}D",
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontFamily = JetBrainsMonoFontFamily
+                                                ),
+                                                color = cyberYellow,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
+                                    FilterActionButton(
+                                        hasActiveFilter = activeFilter != CyberHabitFilter.ALL,
+                                        tint = cyberCyan,
+                                        onClick = { showFilterDrawer = !showFilterDrawer }
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            if (metrics.shouldStackTightPairs) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    CyberTripleRings(
+                                        outerProgress = dailyProgress,
+                                        middleProgress = weeklyProgress,
+                                        innerProgress = momentumProgress,
+                                        outerColor = cyberCyan,
+                                        middleColor = cyberMagenta,
+                                        innerColor = cyberYellow,
+                                        modifier = Modifier.size(116.dp)
+                                    )
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        CyberMetricRow("SYNCED TODAY", "$doneToday / ${state.habits.size}", cyberCyan, cyberMuted)
+                                        CyberMetricRow("WEEKLY OVERCLOCK", "${(weeklyProgress * 100).roundToInt()}%", cyberMagenta, cyberMuted)
+                                        CyberMetricRow("PEAK STREAK", "$longestStreak DAYS", cyberYellow, cyberMuted)
                                     }
                                 }
-                                FilterActionButton(
-                                    hasActiveFilter = activeFilter != CyberHabitFilter.ALL,
-                                    tint = cyberCyan,
-                                    onClick = { showFilterDrawer = !showFilterDrawer }
-                                )
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CyberTripleRings(
+                                        outerProgress = dailyProgress,
+                                        middleProgress = weeklyProgress,
+                                        innerProgress = momentumProgress,
+                                        outerColor = cyberCyan,
+                                        middleColor = cyberMagenta,
+                                        innerColor = cyberYellow,
+                                        modifier = Modifier.size(if (metrics.isNarrowPhone) 118.dp else 134.dp)
+                                    )
+                                    Spacer(Modifier.width(16.dp))
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        CyberMetricRow("SYNCED TODAY", "$doneToday / ${state.habits.size}", cyberCyan, cyberMuted)
+                                        CyberMetricRow("WEEKLY OVERCLOCK", "${(weeklyProgress * 100).roundToInt()}%", cyberMagenta, cyberMuted)
+                                        CyberMetricRow("PEAK STREAK", "$longestStreak DAYS", cyberYellow, cyberMuted)
+                                    }
+                                }
                             }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CyberTripleRings(
-                                outerProgress = dailyProgress,
-                                middleProgress = weeklyProgress,
-                                innerProgress = momentumProgress,
-                                outerColor = cyberCyan,
-                                middleColor = cyberMagenta,
-                                innerColor = cyberYellow,
-                                modifier = Modifier.size(134.dp)
-                            )
-                            Spacer(Modifier.width(18.dp))
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                CyberMetricRow("SYNCED TODAY", "$doneToday / ${state.habits.size}", cyberCyan, cyberMuted)
-                                CyberMetricRow("WEEKLY OVERCLOCK", "${(weeklyProgress * 100).roundToInt()}%", cyberMagenta, cyberMuted)
-                                CyberMetricRow("PEAK STREAK", "$longestStreak DAYS", cyberYellow, cyberMuted)
-                            }
-                        }
 
                         AnimatedVisibility(
                             visible = showFilterDrawer,
@@ -350,25 +399,32 @@ fun HabitScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 last7Days.forEach { dayKey ->
                                     val count = state.habits.count { it.isDoneOn(dayKey) }
                                     val ratio = if (state.habits.isEmpty()) 0f else count.toFloat() / state.habits.size
                                     val isToday = dayKey == todayKey
                                     val cellShape = CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
                                         Text(
                                             text = DateAndFormatUtils.dayShortLetter(dayKey),
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontFamily = JetBrainsMonoFontFamily
                                             ),
-                                            color = if (isToday) cyberYellow else cyberMuted
+                                            color = if (isToday) cyberYellow else cyberMuted,
+                                            maxLines = 1,
+                                            softWrap = false
                                         )
                                         Spacer(Modifier.height(6.dp))
                                         Box(
                                             modifier = Modifier
-                                                .size(36.dp)
+                                                .fillMaxWidth()
+                                                .widthIn(max = 38.dp)
+                                                .aspectRatio(1f)
                                                 .clip(cellShape)
                                                 .background(
                                                     when {
@@ -391,6 +447,8 @@ fun HabitScreen(
                                                     fontFamily = JetBrainsMonoFontFamily
                                                 ),
                                                 fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false,
                                                 color = when {
                                                     ratio >= 0.85f -> if (isDark) Color(0xFF060512) else Color.White
                                                     ratio >= 0.45f -> Color.White
@@ -446,6 +504,7 @@ fun HabitScreen(
                 }
 
                 item { Spacer(Modifier.height(84.dp)) }
+                }
             }
         }
     }
@@ -529,17 +588,21 @@ private fun CyberMetricRow(label: String, value: String, color: Color, mutedColo
                 .background(color)
         )
         Spacer(Modifier.width(10.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily),
-                color = mutedColor
+                color = mutedColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                 color = color,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -605,7 +668,9 @@ private fun CyberHabitCard(
                     text = habit.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = inkColor,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -621,7 +686,9 @@ private fun CyberHabitCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontFamily = JetBrainsMonoFontFamily
                         ),
-                        color = mutedColor
+                        color = mutedColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -694,6 +761,9 @@ private fun AddHabitSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -740,25 +810,32 @@ private fun AddHabitSheet(
             }
 
             Text("Neon Channel", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                colorOptions.forEach { hex ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(colorOptions, key = { it }) { hex ->
                     val color = parseHexOrDefault(hex)
                     val selected = selectedColor == hex
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(color)
                             .clickable { selectedColor = hex },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (selected) {
-                            Icon(
-                                Icons.Rounded.Check,
-                                contentDescription = "Selected color",
-                                tint = Color(0xFF060512),
-                                modifier = Modifier.size(18.dp)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(color),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selected) {
+                                Icon(
+                                    Icons.Rounded.Check,
+                                    contentDescription = "Selected color",
+                                    tint = Color(0xFF060512),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }

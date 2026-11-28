@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -63,6 +64,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.domain.model.ExpenseCategory
@@ -163,6 +166,8 @@ fun CountUpCurrencyText(
         style = style.copy(fontFamily = JetBrainsMonoFontFamily),
         color = color,
         maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier
     )
 }
@@ -246,30 +251,41 @@ fun ErrorBanner(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.errorContainer
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(
-                imageVector = Icons.Rounded.ErrorOutline,
-                contentDescription = "Error",
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.weight(1f)
-            )
-            if (onRetry != null) {
-                TextButton(onClick = onRetry) {
-                    Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ErrorOutline,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f)
+                )
             }
-            TextButton(onClick = onDismiss) {
-                Text("Dismiss", color = MaterialTheme.colorScheme.onErrorContainer)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (onRetry != null) {
+                    TextButton(onClick = onRetry) {
+                        Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer, maxLines = 1)
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Dismiss", color = MaterialTheme.colorScheme.onErrorContainer, maxLines = 1)
+                }
             }
         }
     }
@@ -315,18 +331,23 @@ fun EmptyStateCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onAction) {
-                    Text(actionLabel)
+                Button(
+                    onClick = onAction,
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                ) {
+                    Text(actionLabel, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -345,7 +366,7 @@ fun SavingActionButton(
         onClick = onClick,
         enabled = enabled && !isSaving,
         shape = RoundedCornerShape(14.dp),
-        modifier = modifier.height(50.dp)
+        modifier = modifier.defaultMinSize(minHeight = 50.dp)
     ) {
         if (isSaving) {
             CircularProgressIndicator(
@@ -354,9 +375,9 @@ fun SavingActionButton(
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(Modifier.width(8.dp))
-            Text("Saving…")
+            Text("Saving…", maxLines = 1, overflow = TextOverflow.Ellipsis)
         } else {
-            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

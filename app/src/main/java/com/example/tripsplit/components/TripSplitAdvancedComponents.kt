@@ -30,7 +30,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -309,7 +311,10 @@ fun TripUnderlineTabBar(
                         ),
                         color = if (selected) colors.inkPrimary else colors.inkMuted,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(vertical = 10.dp)
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
                     )
                     Box(
                         modifier = Modifier
@@ -378,7 +383,9 @@ fun TripConfirmDialog(
             shadowElevation = 4.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
@@ -405,18 +412,23 @@ fun TripConfirmDialog(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .defaultMinSize(minHeight = 46.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .clickable(onClick = onConfirm)
                             .testTag("ts_dialog_confirm_btn"),
                         shape = RoundedCornerShape(10.dp),
                         color = if (isDestructive) colors.danger else colors.accent
                     ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)
+                        ) {
                             Text(
                                 text = confirmLabel,
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

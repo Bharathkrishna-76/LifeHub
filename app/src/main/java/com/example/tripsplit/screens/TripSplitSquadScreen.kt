@@ -4,10 +4,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,6 +63,7 @@ import com.example.tripsplit.domain.WalletEntryType
 import com.example.tripsplit.theme.LocalTripSplitColors
 import com.example.tripsplit.theme.TripMonoFont
 import com.example.tripsplit.viewmodel.TripSplitUiState
+import com.example.ui.components.rememberResponsiveMetrics
 
 @Composable
 fun TripSplitSquadScreen(
@@ -106,39 +109,54 @@ fun TripSplitSquadScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val membersById = remember(uiState.members) { uiState.members.associateBy { it.id } }
 
-    LazyColumn(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.canvas),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 92.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .background(colors.canvas)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Squad & Wallet",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = colors.inkPrimary
-                    )
-                    Text(
-                        text = "${trip.title} · ${uiState.members.size} member${if (uiState.members.size == 1) "" else "s"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.inkMuted
+        val responsive = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = responsive.horizontalPadding,
+                end = responsive.horizontalPadding,
+                top = 8.dp,
+                bottom = 92.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Squad & Wallet",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = colors.inkPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${trip.title} · ${uiState.members.size} member${if (uiState.members.size == 1) "" else "s"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.inkMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TripOutlinedButton(
+                        text = "Invite",
+                        icon = Icons.Rounded.GroupAdd,
+                        onClick = onInviteMembersClick,
+                        testTag = "ts_squad_add_traveler_btn"
                     )
                 }
-                TripOutlinedButton(
-                    text = "Invite",
-                    icon = Icons.Rounded.GroupAdd,
-                    onClick = onInviteMembersClick,
-                    testTag = "ts_squad_add_traveler_btn"
-                )
             }
-        }
 
         item {
             TripUnderlineTabBar(
@@ -353,44 +371,95 @@ fun TripSplitSquadScreen(
                 } else 0f
 
                 TripSageCard(padding = 16.dp, cornerRadius = 14.dp) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AccountBalanceWallet,
-                                    contentDescription = null,
-                                    tint = colors.forest,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                    if (responsive.shouldStackTightPairs) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = colors.forest,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Common Wallet Balance",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.inkSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Common Wallet Balance",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.inkSecondary
+                                    text = formatTripMoney(metrics.walletBalance, trip.currencySymbol),
+                                    style = MaterialTheme.typography.displayMedium.copy(
+                                        fontFamily = TripMonoFont,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = formatTripMoney(metrics.walletBalance, trip.currencySymbol),
-                                style = MaterialTheme.typography.displayMedium.copy(
-                                    fontFamily = TripMonoFont,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = colors.inkPrimary
+                            TripPrimaryButton(
+                                text = "Top Up",
+                                icon = Icons.Rounded.Add,
+                                onClick = onTopUpWalletClick,
+                                modifier = Modifier.fillMaxWidth(),
+                                testTag = "ts_wallet_tab_top_up_btn"
                             )
                         }
-                        TripPrimaryButton(
-                            text = "Top Up",
-                            icon = Icons.Rounded.Add,
-                            onClick = onTopUpWalletClick,
-                            testTag = "ts_wallet_tab_top_up_btn"
-                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = colors.forest,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Common Wallet Balance",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.inkSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = formatTripMoney(metrics.walletBalance, trip.currencySymbol),
+                                    style = MaterialTheme.typography.displayMedium.copy(
+                                        fontFamily = TripMonoFont,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TripPrimaryButton(
+                                text = "Top Up",
+                                icon = Icons.Rounded.Add,
+                                onClick = onTopUpWalletClick,
+                                testTag = "ts_wallet_tab_top_up_btn"
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -461,6 +530,7 @@ fun TripSplitSquadScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -468,13 +538,18 @@ fun TripSplitSquadScreen(
                                 Text(
                                     text = bal.member.name,
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = colors.inkPrimary
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = formatTripMoney(bal.walletContributed, trip.currencySymbol),
                                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
-                                color = colors.forest
+                                color = colors.forest,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -537,22 +612,29 @@ fun TripSplitSquadScreen(
                                 Text(
                                     text = "$memberName · ${entry.type.label}",
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = colors.inkPrimary
+                                    color = colors.inkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${entry.note} · ${formatTripDate(entry.createdAt)}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = colors.inkMuted
+                                    color = colors.inkMuted,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = (if (isDeposit) "+" else "-") + formatTripMoney(entry.amount, trip.currencySymbol),
                                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = TripMonoFont),
-                                color = if (isDeposit) colors.forest else colors.accent
+                                color = if (isDeposit) colors.forest else colors.accent,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             IconButton(
                                 onClick = { onDeleteWalletEntry(entry.id) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.DeleteOutline,
@@ -566,5 +648,6 @@ fun TripSplitSquadScreen(
                 }
             }
         }
+    }
     }
 }

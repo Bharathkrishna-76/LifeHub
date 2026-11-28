@@ -16,13 +16,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -108,6 +112,7 @@ import com.example.ui.components.SavingActionButton
 import com.example.ui.components.SearchAction
 import com.example.ui.components.ShareActionButton
 import com.example.ui.components.StealthCarbonElevated
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalLifeHubColors
 import com.example.ui.viewmodel.LifeHubUiState
@@ -265,6 +270,7 @@ fun ExpenseScreen(
 
     Scaffold(
         containerColor = palette.bg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -305,47 +311,56 @@ fun ExpenseScreen(
             }
         }
     ) { innerPadding ->
-        PullToRefreshBox(
-            isRefreshing = state.isSyncingMonth,
-            onRefresh = onRefresh,
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("expense_list"),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+            PullToRefreshBox(
+                isRefreshing = state.isSyncingMonth,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Header + 3-Way Money Hub Sub-Tab Switcher (Daily | Trips | Bills & EMI)
-                item(key = "fintech_header") {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (isDark) "PRIVATE VAULT • MONEY HUB" else "CHAMPAGNE VAULT • MONEY HUB",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.gold,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = when (activeSubTab) {
-                                        1 -> "Trips & Events"
-                                        2 -> "Bills, EMI & Subs"
-                                        else -> "Private Ledger"
-                                    },
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = palette.ink,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("expense_list"),
+                    contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Header + 3-Way Money Hub Sub-Tab Switcher (Daily | Trips | Bills & EMI)
+                    item(key = "fintech_header") {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (isDark) "PRIVATE VAULT • MONEY HUB" else "CHAMPAGNE VAULT • MONEY HUB",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = palette.gold,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = when (activeSubTab) {
+                                            1 -> "Trips & Events"
+                                            2 -> "Bills, EMI & Subs"
+                                            else -> "Private Ledger"
+                                        },
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = palette.ink,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (activeSubTab == 0) {
                                     SearchAction(
@@ -496,26 +511,28 @@ fun ExpenseScreen(
                         // TAB 0: DAILY ACTIVITY VAULT
                         item(key = "daily_vault_card") {
                             PremiumDarkVaultCard(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
+                                val periodLabel: @Composable (Modifier) -> Unit = { labelMod ->
+                                    Column(modifier = labelMod) {
                                         Text(
                                             text = "STATEMENT PERIOD",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = palette.gold.copy(alpha = 0.9f),
-                                            fontWeight = FontWeight.SemiBold
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         if (state.settings.separateTripEventLedger && state.allTripEventTransactions.isNotEmpty()) {
                                             Text(
                                                 text = "Daily only • Trips excluded",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = palette.muted
+                                                color = palette.muted,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     }
+                                }
+                                val monthStepper: @Composable () -> Unit = {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
                                         color = palette.pillBg,
@@ -539,7 +556,9 @@ fun ExpenseScreen(
                                                 style = MaterialTheme.typography.labelLarge.copy(
                                                     fontFamily = JetBrainsMonoFontFamily
                                                 ),
-                                                color = palette.ink
+                                                color = palette.ink,
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                             IconButton(
                                                 onClick = { onShiftMonth(1) },
@@ -557,29 +576,52 @@ fun ExpenseScreen(
                                     }
                                 }
 
+                                if (metrics.shouldStackTightPairs) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        periodLabel(Modifier.fillMaxWidth())
+                                        monthStepper()
+                                    }
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        periodLabel(Modifier.weight(1f))
+                                        Spacer(Modifier.width(8.dp))
+                                        monthStepper()
+                                    }
+                                }
+
                                 Spacer(Modifier.height(16.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     LedgerMetricColumn(
                                         label = "INFLOW",
                                         value = DateAndFormatUtils.formatCurrency(state.totalIncome, symbol, compact = true),
                                         color = palette.mint,
-                                        mutedColor = palette.muted
+                                        mutedColor = palette.muted,
+                                        modifier = Modifier.weight(1f)
                                     )
                                     LedgerMetricColumn(
                                         label = "OUTFLOW",
                                         value = DateAndFormatUtils.formatCurrency(state.totalExpense, symbol, compact = true),
                                         color = palette.coral,
-                                        mutedColor = palette.muted
+                                        mutedColor = palette.muted,
+                                        modifier = Modifier.weight(1f)
                                     )
                                     LedgerMetricColumn(
                                         label = "NET VAULT",
                                         value = DateAndFormatUtils.formatCurrency(state.netBalance, symbol, compact = true),
                                         color = palette.gold,
-                                        mutedColor = palette.muted
+                                        mutedColor = palette.muted,
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
@@ -604,8 +646,12 @@ fun ExpenseScreen(
                                             text = if (showYearlyReport) "YEARLY REPORT • ${state.yearlyReport.year}" else "CATEGORY ALLOCATION",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = palette.gold,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
                                         )
+                                        Spacer(Modifier.width(8.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Surface(
                                                 onClick = { showYearlyReport = !showYearlyReport },
@@ -618,6 +664,8 @@ fun ExpenseScreen(
                                                     text = if (showYearlyReport) "Monthly" else "Yearly",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = palette.gold,
+                                                    maxLines = 1,
+                                                    softWrap = false,
                                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                                 )
                                             }
@@ -639,33 +687,33 @@ fun ExpenseScreen(
                                             if (showYearlyReport) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
                                                     LedgerMetricColumn(
                                                         label = "YR INFLOW",
                                                         value = DateAndFormatUtils.formatCurrency(state.yearlyReport.totalIncome, symbol, compact = true),
                                                         color = palette.mint,
-                                                        mutedColor = palette.muted
+                                                        mutedColor = palette.muted,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                     LedgerMetricColumn(
                                                         label = "YR OUTFLOW",
                                                         value = DateAndFormatUtils.formatCurrency(state.yearlyReport.totalExpense, symbol, compact = true),
                                                         color = palette.coral,
-                                                        mutedColor = palette.muted
+                                                        mutedColor = palette.muted,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                     LedgerMetricColumn(
                                                         label = "YR NET (${state.yearlyReport.cachedMonthsCount}m)",
                                                         value = DateAndFormatUtils.formatCurrency(state.yearlyReport.netSavings, symbol, compact = true),
                                                         color = palette.gold,
-                                                        mutedColor = palette.muted
+                                                        mutedColor = palette.muted,
+                                                        modifier = Modifier.weight(1f)
                                                     )
                                                 }
                                             }
                                             if (activeBreakdown.isNotEmpty()) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
+                                                val donutChart: @Composable () -> Unit = {
                                                     Box(
                                                         modifier = Modifier.size(100.dp),
                                                         contentAlignment = Alignment.Center
@@ -696,18 +744,23 @@ fun ExpenseScreen(
                                                                     fontFamily = JetBrainsMonoFontFamily
                                                                 ),
                                                                 color = palette.ink,
-                                                                fontWeight = FontWeight.Bold
+                                                                fontWeight = FontWeight.Bold,
+                                                                maxLines = 1,
+                                                                softWrap = false
                                                             )
                                                             Text(
                                                                 text = "cats",
                                                                 style = MaterialTheme.typography.labelSmall,
-                                                                color = palette.muted
+                                                                color = palette.muted,
+                                                                maxLines = 1,
+                                                                softWrap = false
                                                             )
                                                         }
                                                     }
-                                                    Spacer(Modifier.width(16.dp))
+                                                }
+                                                val legendColumn: @Composable (Modifier) -> Unit = { legendMod ->
                                                     Column(
-                                                        modifier = Modifier.weight(1f),
+                                                        modifier = legendMod,
                                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                                     ) {
                                                         activeBreakdown.take(4).forEach { (cat, amount, fraction) ->
@@ -716,7 +769,10 @@ fun ExpenseScreen(
                                                                 verticalAlignment = Alignment.CenterVertically,
                                                                 horizontalArrangement = Arrangement.SpaceBetween
                                                             ) {
-                                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Row(
+                                                                    modifier = Modifier.weight(1f),
+                                                                    verticalAlignment = Alignment.CenterVertically
+                                                                ) {
                                                                     Box(
                                                                         modifier = Modifier
                                                                             .size(8.dp)
@@ -727,17 +783,42 @@ fun ExpenseScreen(
                                                                     Text(
                                                                         text = cat.label,
                                                                         style = MaterialTheme.typography.bodySmall,
-                                                                        color = palette.ink
+                                                                        color = palette.ink,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
                                                                     )
                                                                 }
+                                                                Spacer(Modifier.width(8.dp))
                                                                 Text(
                                                                     text = "${DateAndFormatUtils.formatCurrency(amount, symbol, compact = true)} (${(fraction * 100).roundToInt()}%)",
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = palette.gold,
-                                                                    fontWeight = FontWeight.SemiBold
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    maxLines = 1,
+                                                                    softWrap = false
                                                                 )
                                                             }
                                                         }
+                                                    }
+                                                }
+
+                                                if (metrics.shouldStackTightPairs) {
+                                                    Column(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                                    ) {
+                                                        donutChart()
+                                                        legendColumn(Modifier.fillMaxWidth())
+                                                    }
+                                                } else {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        donutChart()
+                                                        Spacer(Modifier.width(16.dp))
+                                                        legendColumn(Modifier.weight(1f))
                                                     }
                                                 }
                                             }
@@ -916,6 +997,7 @@ fun ExpenseScreen(
                 }
 
                 item { Spacer(Modifier.height(84.dp)) }
+                }
             }
         }
     }
@@ -967,20 +1049,26 @@ private fun LedgerMetricColumn(
     label: String,
     value: String,
     color: Color,
-    mutedColor: Color
+    mutedColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = mutedColor
+            color = mutedColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium.copy(fontFamily = JetBrainsMonoFontFamily),
             color = color,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -1072,6 +1160,7 @@ internal fun SwipeableTransactionRow(
                                     color = palette.gold,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                 )
                             }
@@ -1100,7 +1189,9 @@ internal fun SwipeableTransactionRow(
                     text = "$sign${DateAndFormatUtils.formatCurrency(transaction.amount, currencySymbol)}",
                     style = MaterialTheme.typography.titleMedium.copy(fontFamily = JetBrainsMonoFontFamily),
                     color = if (isIncome) palette.mint else palette.gold,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1167,6 +1258,8 @@ private fun AddTransactionSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {

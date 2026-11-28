@@ -22,9 +22,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,8 +37,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material3.Button
@@ -71,12 +76,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import com.example.R
 import com.example.auth.attemptAutoSignIn
 import com.example.auth.onGoogleSignInClicked
 import com.example.ui.components.ErrorBanner
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.LocalLifeHubColors
 import kotlinx.coroutines.delay
 
@@ -85,25 +94,37 @@ fun LifeHubSplashScreen(
     modifier: Modifier = Modifier
 ) {
     SplashBackdrop(modifier = modifier.testTag("splash_loading_screen")) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .displayCutoutPadding(),
+            contentAlignment = Alignment.Center
         ) {
-            AnimatedSplashEmblem(isLoading = true)
-            Spacer(Modifier.height(24.dp))
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(28.dp))
-            SplashLoadingBar()
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            val emblemSize = if (metrics.isCompactHeight) 112.dp else 152.dp
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = if (metrics.isNarrowPhone) 20.dp else 28.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AnimatedSplashEmblem(isLoading = true, emblemSize = emblemSize)
+                Spacer(Modifier.height(if (metrics.isCompactHeight) 16.dp else 24.dp))
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(if (metrics.isCompactHeight) 18.dp else 28.dp))
+                SplashLoadingBar()
+            }
         }
     }
 }
@@ -145,133 +166,156 @@ fun AuthScreen(
     val cs = MaterialTheme.colorScheme
 
     SplashBackdrop(modifier = Modifier.testTag("auth_login_screen")) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 28.dp, vertical = 32.dp)
-                .widthIn(max = 440.dp)
-                .align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+                .displayCutoutPadding(),
+            contentAlignment = Alignment.Center
         ) {
-            Spacer(Modifier.height(24.dp))
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            val emblemSize = if (metrics.isCompactHeight) 112.dp else 152.dp
+            val hPad = if (metrics.isNarrowPhone) 20.dp else 28.dp
+            val vPad = if (metrics.isCompactHeight) 16.dp else 32.dp
 
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                AnimatedSplashEmblem(isLoading = isSplashLoading || isSigningIn)
-
-                Spacer(Modifier.height(24.dp))
-
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = cs.onBackground,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                contentAlignment = Alignment.Center
+                    .widthIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState())
+                    .defaultMinSize(minHeight = maxHeight)
+                    .padding(horizontal = hPad, vertical = vPad),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                AnimatedContent(
-                    targetState = isSplashLoading,
-                    transitionSpec = {
-                        (fadeIn(tween(260)) + slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        ) { it / 4 }) togetherWith fadeOut(tween(200))
-                    },
-                    label = "splash_to_login"
-                ) { loading ->
-                    if (loading) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        ) {
-                            SplashLoadingBar()
-                        }
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            AnimatedVisibility(visible = errorMessage != null) {
-                                Column {
-                                    errorMessage?.let { msg ->
-                                        ErrorBanner(
-                                            message = msg,
-                                            onDismiss = { errorMessage = null }
-                                        )
-                                        Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(if (metrics.isCompactHeight) 8.dp else 24.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    AnimatedSplashEmblem(
+                        isLoading = isSplashLoading || isSigningIn,
+                        emblemSize = emblemSize
+                    )
+
+                    Spacer(Modifier.height(if (metrics.isCompactHeight) 14.dp else 24.dp))
+
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = cs.onBackground,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(Modifier.height(if (metrics.isCompactHeight) 16.dp else 24.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedContent(
+                        targetState = isSplashLoading,
+                        transitionSpec = {
+                            (fadeIn(tween(260)) + slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            ) { it / 4 }) togetherWith fadeOut(tween(200))
+                        },
+                        label = "splash_to_login"
+                    ) { loading ->
+                        if (loading) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(vertical = 16.dp)
+                            ) {
+                                SplashLoadingBar()
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                AnimatedVisibility(visible = errorMessage != null) {
+                                    Column {
+                                        errorMessage?.let { msg ->
+                                            ErrorBanner(
+                                                message = msg,
+                                                onDismiss = { errorMessage = null }
+                                            )
+                                            Spacer(Modifier.height(14.dp))
+                                        }
                                     }
                                 }
-                            }
 
-                            Button(
-                                onClick = {
-                                    errorMessage = null
-                                    isSigningIn = true
-                                    onGoogleSignInClicked(
-                                        context = context,
-                                        credentialManager = credentialManager,
-                                        onAuthSuccess = {
-                                            isSigningIn = false
-                                            onAuthSuccess()
-                                        },
-                                        onAuthError = { msg ->
-                                            isSigningIn = false
-                                            errorMessage = msg
-                                        },
-                                        scope = scope,
-                                        onAuthCancelled = {
-                                            isSigningIn = false
-                                        }
-                                    )
-                                },
-                                enabled = !isSigningIn,
-                                shape = RoundedCornerShape(18.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = cs.primary,
-                                    contentColor = cs.onPrimary
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .testTag("google_sign_in_button")
-                            ) {
-                                if (isSigningIn) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(22.dp),
-                                        strokeWidth = 2.5.dp,
-                                        color = cs.onPrimary
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        text = stringResource(R.string.signing_in),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.Login,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(
-                                        text = stringResource(R.string.sign_in_google),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                Button(
+                                    onClick = {
+                                        errorMessage = null
+                                        isSigningIn = true
+                                        onGoogleSignInClicked(
+                                            context = context,
+                                            credentialManager = credentialManager,
+                                            onAuthSuccess = {
+                                                isSigningIn = false
+                                                onAuthSuccess()
+                                            },
+                                            onAuthError = { msg ->
+                                                isSigningIn = false
+                                                errorMessage = msg
+                                            },
+                                            scope = scope,
+                                            onAuthCancelled = {
+                                                isSigningIn = false
+                                            }
+                                        )
+                                    },
+                                    enabled = !isSigningIn,
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = cs.primary,
+                                        contentColor = cs.onPrimary
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .defaultMinSize(minHeight = 56.dp)
+                                        .testTag("google_sign_in_button")
+                                ) {
+                                    if (isSigningIn) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(22.dp),
+                                            strokeWidth = 2.5.dp,
+                                            color = cs.onPrimary
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            text = stringResource(R.string.signing_in),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.Login,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            text = stringResource(R.string.sign_in_google),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -339,7 +383,8 @@ private fun SplashBackdrop(
 
 @Composable
 private fun AnimatedSplashEmblem(
-    isLoading: Boolean
+    isLoading: Boolean,
+    emblemSize: Dp = 152.dp
 ) {
     val cs = MaterialTheme.colorScheme
     val extended = LocalLifeHubColors.current
@@ -381,7 +426,7 @@ private fun AnimatedSplashEmblem(
 
     Box(
         modifier = Modifier
-            .size(152.dp)
+            .size(emblemSize)
             .alpha(enterAlpha.value)
             .scale(enterScale.value),
         contentAlignment = Alignment.Center
@@ -425,7 +470,7 @@ private fun AnimatedSplashEmblem(
             border = BorderStroke(1.5.dp, extended.accentMint.copy(alpha = 0.55f)),
             shadowElevation = 10.dp,
             modifier = Modifier
-                .size(90.dp)
+                .size(emblemSize * 0.59f)
                 .scale(if (isLoading) breathScale else 1f)
         ) {
             Image(

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,6 +52,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -133,7 +136,10 @@ private fun OptionalUpdateDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .displayCutoutPadding()
+                .padding(horizontal = 20.dp, vertical = 20.dp)
                 .widthIn(max = 440.dp)
                 .testTag("optional_update_dialog"),
             shape = RoundedCornerShape(24.dp),
@@ -182,7 +188,8 @@ private fun MandatoryUpdateFullScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .displayCutoutPadding()
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(
@@ -295,19 +302,23 @@ private fun UpdateCardContent(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.update_current_version_label),
                         style = MaterialTheme.typography.labelSmall,
-                        color = cs.onSurfaceVariant
+                        color = cs.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "v${state.installedVersionName}",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = cs.onSurface
+                        color = cs.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Icon(
@@ -316,18 +327,25 @@ private fun UpdateCardContent(
                     tint = cs.primary,
                     modifier = Modifier.size(20.dp)
                 )
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
                     Text(
                         text = stringResource(R.string.update_latest_version_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = cs.primary,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "v${config.latestVersionName}",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = cs.primary
+                        color = cs.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -375,8 +393,12 @@ private fun UpdateCardContent(
                             text = stringResource(R.string.update_status_downloading),
                             style = MaterialTheme.typography.labelMedium,
                             color = cs.onSurface,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
+                        Spacer(Modifier.width(8.dp))
                         val progressLabel = buildString {
                             if (phase.progress != null) {
                                 append("${(phase.progress * 100).toInt()}% • ")
@@ -390,7 +412,9 @@ private fun UpdateCardContent(
                             text = progressLabel,
                             style = MaterialTheme.typography.labelSmall,
                             color = cs.primary,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                     if (phase.progress != null) {
@@ -529,10 +553,14 @@ private fun UpdateCardContent(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_cancel_download_button")
                     ) {
-                        Text(stringResource(R.string.update_btn_cancel_download))
+                        Text(
+                            text = stringResource(R.string.update_btn_cancel_download),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
@@ -543,9 +571,13 @@ private fun UpdateCardContent(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                     ) {
-                        Text(stringResource(R.string.update_status_verifying))
+                        Text(
+                            text = stringResource(R.string.update_status_verifying),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
@@ -559,7 +591,7 @@ private fun UpdateCardContent(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_install_button")
                     ) {
                         Icon(
@@ -570,7 +602,9 @@ private fun UpdateCardContent(
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.update_btn_install),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -585,7 +619,7 @@ private fun UpdateCardContent(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_allow_permission_button")
                     ) {
                         Icon(
@@ -596,7 +630,9 @@ private fun UpdateCardContent(
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.update_btn_allow_install),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     OutlinedButton(
@@ -604,10 +640,14 @@ private fun UpdateCardContent(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_retry_install_after_permission_button")
                     ) {
-                        Text(stringResource(R.string.update_btn_install))
+                        Text(
+                            text = stringResource(R.string.update_btn_install),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
@@ -621,14 +661,16 @@ private fun UpdateCardContent(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_retry_button")
                     ) {
                         Text(
                             text = stringResource(
                                 if (phase.canRetryInstall) R.string.update_btn_install else R.string.update_btn_retry
                             ),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     if (isMandatory && onRecheckConfig != null) {
@@ -636,10 +678,14 @@ private fun UpdateCardContent(
                             onClick = onRecheckConfig,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .testTag("update_recheck_config_button")
                         ) {
-                            Text(stringResource(R.string.update_settings_check_button))
+                            Text(
+                                text = stringResource(R.string.update_settings_check_button),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -654,7 +700,7 @@ private fun UpdateCardContent(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .testTag("update_download_button")
                     ) {
                         Icon(
@@ -667,7 +713,9 @@ private fun UpdateCardContent(
                             text = stringResource(
                                 if (isMandatory) R.string.update_btn_update_now else R.string.update_btn_download
                             ),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -678,12 +726,14 @@ private fun UpdateCardContent(
                     onClick = onRemindLater,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .defaultMinSize(minHeight = 48.dp)
                         .testTag("update_remind_later_button")
                 ) {
                     Text(
                         text = stringResource(R.string.update_btn_remind_later),
-                        color = cs.onSurfaceVariant
+                        color = cs.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -761,7 +811,7 @@ fun AppUpdateSettingsCard(
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .defaultMinSize(minHeight = 48.dp)
                     .testTag("settings_check_updates_button")
             ) {
                 if (state.isManualChecking) {
@@ -770,7 +820,11 @@ fun AppUpdateSettingsCard(
                         strokeWidth = 2.dp
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.update_status_checking))
+                    Text(
+                        text = stringResource(R.string.update_status_checking),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 } else {
                     Icon(
                         imageVector = Icons.Rounded.SystemUpdate,
@@ -778,7 +832,11 @@ fun AppUpdateSettingsCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.update_settings_check_button))
+                    Text(
+                        text = stringResource(R.string.update_settings_check_button),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

@@ -2,19 +2,27 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import com.example.auth.signOutUser
@@ -69,6 +78,7 @@ import com.example.ui.components.Extruded3DButton
 import com.example.ui.components.FrostedGlassPanel
 import com.example.ui.components.ShareActionButton
 import com.example.ui.components.SpinningRefreshAction
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.LifeHubApplication
 import com.example.ui.theme.CyberViolet
 import com.example.ui.theme.LocalLifeHubColors
@@ -131,9 +141,17 @@ fun ProfileScreen(
 
     Scaffold(
         containerColor = cs.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
-                title = { Text("Profile & Settings", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = "Profile & Settings",
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 navigationIcon = {
                     BackArrowAction(
                         onClick = onBack,
@@ -151,14 +169,23 @@ fun ProfileScreen(
             )
         }
     ) { innerPadding ->
-        LazyColumn(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .testTag("profile_screen"),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 720.dp)
+                    .testTag("profile_screen"),
+                contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Frosted Glass Identity Card
             item(key = "user_card") {
                 FrostedGlassPanel(
@@ -238,7 +265,12 @@ fun ProfileScreen(
                                     shape = SegmentedButtonDefaults.itemShape(idx, ThemeMode.entries.size),
                                     modifier = Modifier.testTag("theme_${mode.name.lowercase()}")
                                 ) {
-                                    Text(mode.name.lowercase().replaceFirstChar { it.uppercase() })
+                                    Text(
+                                        text = mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
@@ -259,7 +291,12 @@ fun ProfileScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text("Budget & Currency", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             currencies.forEach { sym ->
                                 FilterChip(
                                     selected = selectedCurrency == sym,
@@ -362,12 +399,12 @@ fun ProfileScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .testTag("export_csv_button")
                         ) {
                             Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Export Data (CSV)")
+                            Text("Export Data (CSV)", maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
 
                         val lastSyncLabel = if (state.lastSyncedEpochMs > 0L) {
@@ -392,12 +429,12 @@ fun ProfileScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .testTag("smart_delta_sync_button")
                         ) {
                             Icon(Icons.Rounded.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Smart Delta Sync")
+                            Text("Smart Delta Sync", maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
 
                         OutlinedButton(
@@ -405,12 +442,12 @@ fun ProfileScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .testTag("full_cloud_resync_button")
                         ) {
                             Icon(Icons.Rounded.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Full Cloud Re-sync")
+                            Text("Full Cloud Re-sync", maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -449,16 +486,17 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .defaultMinSize(minHeight = 52.dp)
                         .testTag("sign_out_button")
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Sign Out", fontWeight = FontWeight.Bold)
+                    Text("Sign Out", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
             item { Spacer(Modifier.height(24.dp)) }
+            }
         }
     }
 }

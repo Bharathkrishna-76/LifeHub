@@ -6,20 +6,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Autorenew
@@ -67,6 +72,7 @@ import com.example.domain.util.DateAndFormatUtils
 import com.example.ui.components.EmptyStateCard
 import com.example.ui.components.PremiumDarkVaultCard
 import com.example.ui.components.SavingActionButton
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalLifeHubColors
 import com.example.ui.viewmodel.LifeHubUiState
@@ -163,34 +169,42 @@ internal fun LazyListScope.tripsAndEventsSection(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (selectedEventFilter == null) "ALL TRIPS SPEND" else selectedEventFilter.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.muted
+                        color = palette.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = DateAndFormatUtils.formatCurrency(filteredTotal, symbol),
                         style = MaterialTheme.typography.headlineSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = palette.gold,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "TRIPS / ENTRIES",
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.muted
+                        color = palette.muted,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "${eventGroups.size} trips • ${filteredTrips.size} items",
                         style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = palette.ink,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -316,48 +330,67 @@ internal fun LazyListScope.billsAndEmiSection(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1.2f)) {
                     Text(
                         text = "PENDING DUE",
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.muted
+                        color = palette.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = DateAndFormatUtils.formatCurrency(pendingTotal, symbol),
+                        text = DateAndFormatUtils.formatCurrency(pendingTotal, symbol, compact = true),
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = palette.coral,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(0.9f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = "DUE SOON",
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.muted
+                        color = palette.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "$dueSoonCount",
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = palette.gold,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    modifier = Modifier.weight(0.9f),
+                    horizontalAlignment = Alignment.End
+                ) {
                     Text(
                         text = "PAID",
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.muted
+                        color = palette.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "$paidCount / ${allReminders.size}",
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = palette.mint,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -458,103 +491,155 @@ private fun MoneyReminderCard(
             .fillMaxWidth()
             .testTag("money_reminder_row_${reminder.id}")
     ) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
-            IconButton(
-                onClick = onTogglePaid,
-                modifier = Modifier.size(44.dp)
+            val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+            val compactRow = metrics.isNarrowPhone || metrics.isLargeFont
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = if (reminder.paid) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                    contentDescription = if (reminder.paid) "Mark unpaid" else "Mark paid",
-                    tint = if (reminder.paid) palette.mint else accent,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-            Spacer(Modifier.width(6.dp))
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(accent.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = reminderCategoryIcon(reminder.category),
-                    contentDescription = reminder.category.label,
-                    tint = accent,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = reminder.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (reminder.paid) palette.muted else palette.ink,
-                    textDecoration = if (reminder.paid) TextDecoration.LineThrough else TextDecoration.None,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(2.dp))
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${reminder.category.label} • ${DateAndFormatUtils.formatShortDate(reminder.dueDateEpochMs)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.muted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (reminder.recurringMonthly) {
+                    IconButton(
+                        onClick = onTogglePaid,
+                        modifier = Modifier.size(44.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Rounded.Autorenew,
-                            contentDescription = "Monthly recurring",
+                            imageVector = if (reminder.paid) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                            contentDescription = if (reminder.paid) "Mark unpaid" else "Mark paid",
+                            tint = if (reminder.paid) palette.mint else accent,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(accent.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = reminderCategoryIcon(reminder.category),
+                            contentDescription = reminder.category.label,
                             tint = accent,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = reminder.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (reminder.paid) palette.muted else palette.ink,
+                            textDecoration = if (reminder.paid) TextDecoration.LineThrough else TextDecoration.None,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "${reminder.category.label} • ${DateAndFormatUtils.formatShortDate(reminder.dueDateEpochMs)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.muted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (reminder.recurringMonthly) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Autorenew,
+                                    contentDescription = "Monthly recurring",
+                                    tint = accent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (!compactRow) {
+                        Spacer(Modifier.width(8.dp))
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = DateAndFormatUtils.formatCurrency(reminder.amount, currencySymbol),
+                                style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
+                                color = if (reminder.paid) palette.muted else palette.ink,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Surface(
+                                shape = CircleShape,
+                                color = statusColor.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    text = statusText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = statusColor,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "Delete reminder",
+                            tint = palette.muted,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
-            }
-            Spacer(Modifier.width(8.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = DateAndFormatUtils.formatCurrency(reminder.amount, currencySymbol),
-                    style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
-                    color = if (reminder.paid) palette.muted else palette.ink,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(2.dp))
-                Surface(
-                    shape = CircleShape,
-                    color = statusColor.copy(alpha = 0.16f)
-                ) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusColor,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
+
+                if (compactRow) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 48.dp, end = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = DateAndFormatUtils.formatCurrency(reminder.amount, currencySymbol),
+                            style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
+                            color = if (reminder.paid) palette.muted else palette.ink,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = statusColor.copy(alpha = 0.16f)
+                        ) {
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = statusColor,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
-            }
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = "Delete reminder",
-                    tint = palette.muted,
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
     }
@@ -597,6 +682,9 @@ internal fun AddMoneyReminderSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -630,8 +718,8 @@ internal fun AddMoneyReminderSheet(
                     .testTag("money_reminder_title_input")
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReminderCategory.entries.forEach { cat ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(ReminderCategory.entries, key = { it.name }) { cat ->
                     FilterChip(
                         selected = category == cat,
                         onClick = { category = cat },

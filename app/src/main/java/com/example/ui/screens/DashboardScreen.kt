@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -71,6 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.export.ExportAndShareHelper
 import com.example.domain.util.DateAndFormatUtils
+import com.example.ui.components.AdaptivePairLayout
 import com.example.ui.components.CountUpCurrencyText
 import com.example.ui.components.ErrorBanner
 import com.example.ui.components.ExpandCollapseChevron
@@ -81,6 +83,7 @@ import com.example.ui.components.MoreOptionsAction
 import com.example.ui.components.ProgressRing
 import com.example.ui.components.ShareActionButton
 import com.example.ui.components.SpinningRefreshAction
+import com.example.ui.components.rememberResponsiveMetrics
 import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.LocalLifeHubColors
 import com.example.ui.viewmodel.LifeHubUiState
@@ -134,7 +137,7 @@ fun DashboardScreen(
     } else 0
     val topGoal = state.goals.firstOrNull { !it.completed } ?: state.goals.firstOrNull()
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(cs.background)
@@ -178,6 +181,8 @@ fun DashboardScreen(
                 )
             }
     ) {
+        val metrics = rememberResponsiveMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
+
         PullToRefreshBox(
             isRefreshing = state.isSyncingMonth,
             onRefresh = onRefresh,
@@ -187,7 +192,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag("dashboard_list"),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
             // Frosted Glass Greeting Strip with Action Icons
@@ -201,7 +206,9 @@ fun DashboardScreen(
                         Text(
                             text = "FROSTED GLASS HUB • ${DateAndFormatUtils.formatMonthLabel(state.selectedMonthKey).uppercase()}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = extended.accentMint
+                            color = extended.accentMint,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -268,8 +275,12 @@ fun DashboardScreen(
                             Text(
                                 text = "Current Balance",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = extended.mutedText
+                                color = extended.mutedText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+                            Spacer(Modifier.width(8.dp))
                             Surface(
                                 onClick = onNavigateWrapped,
                                 shape = RoundedCornerShape(50),
@@ -292,7 +303,9 @@ fun DashboardScreen(
                                         text = "Holo Wrapped",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = extended.accentViolet,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -309,25 +322,29 @@ fun DashboardScreen(
 
                         Spacer(Modifier.height(16.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            BalanceDeltaChip(
-                                label = "Income",
-                                amount = DateAndFormatUtils.formatCurrency(state.totalIncome, symbol, compact = true),
-                                icon = Icons.Rounded.ArrowDownward,
-                                accent = extended.accentMint,
-                                modifier = Modifier.weight(1f)
-                            )
-                            BalanceDeltaChip(
-                                label = "Expenses",
-                                amount = DateAndFormatUtils.formatCurrency(state.totalExpense, symbol, compact = true),
-                                icon = Icons.Rounded.ArrowUpward,
-                                accent = extended.accentCoral,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        AdaptivePairLayout(
+                            stackVertically = metrics.isNarrowPhone && metrics.isLargeFont,
+                            horizontalSpacing = 12.dp,
+                            verticalSpacing = 10.dp,
+                            first = { pairModifier ->
+                                BalanceDeltaChip(
+                                    label = "Income",
+                                    amount = DateAndFormatUtils.formatCurrency(state.totalIncome, symbol, compact = true),
+                                    icon = Icons.Rounded.ArrowDownward,
+                                    accent = extended.accentMint,
+                                    modifier = pairModifier
+                                )
+                            },
+                            second = { pairModifier ->
+                                BalanceDeltaChip(
+                                    label = "Expenses",
+                                    amount = DateAndFormatUtils.formatCurrency(state.totalExpense, symbol, compact = true),
+                                    icon = Icons.Rounded.ArrowUpward,
+                                    accent = extended.accentCoral,
+                                    modifier = pairModifier
+                                )
+                            }
+                        )
 
                         Spacer(Modifier.height(10.dp))
 
@@ -344,8 +361,12 @@ fun DashboardScreen(
                             Text(
                                 text = if (expandBreakdown) "Hide quick telemetry" else "Expand budget & savings telemetry",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = extended.mutedText
+                                color = extended.mutedText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+                            Spacer(Modifier.width(6.dp))
                             ExpandCollapseChevron(expanded = expandBreakdown, tint = extended.accentMint)
                         }
 
@@ -374,12 +395,18 @@ fun DashboardScreen(
                                     Text(
                                         text = "Budget used: ${(budgetRatio * 100).roundToInt()}%",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = extended.mutedText
+                                        color = extended.mutedText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    Spacer(Modifier.width(8.dp))
                                     Text(
                                         text = "Savings rate: $savingsRatePct%",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = extended.accentMint
+                                        color = extended.accentMint,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -444,199 +471,227 @@ fun DashboardScreen(
 
             // Bento Row: Monthly Spend + Net Savings
             item(key = "bento_finance") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    FrostedGlassPanel(
-                        accentGlow = extended.accentCoral,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Monthly Spend",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = extended.mutedText
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        CountUpCurrencyText(
-                            targetAmount = state.totalExpense,
-                            currencySymbol = symbol,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = cs.onSurface,
-                            compact = true
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        LinearProgressIndicator(
-                            progress = { animatedBudgetBar },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(50)),
-                            color = if (budgetRatio > 0.9f) extended.accentCoral else extended.accentMint,
-                            trackColor = cs.surfaceContainerHigh
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = "${(budgetRatio * 100).roundToInt()}% of ${DateAndFormatUtils.formatCurrency(budget, symbol, compact = true)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = extended.mutedText
-                        )
-                    }
-
-                    FrostedGlassPanel(
-                        accentGlow = extended.accentMint,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Net Savings",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = extended.mutedText
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        CountUpCurrencyText(
-                            targetAmount = state.netBalance.coerceAtLeast(0.0),
-                            currencySymbol = symbol,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = extended.accentMint,
-                            compact = true
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = extended.accentMint.copy(alpha = 0.16f)
+                AdaptivePairLayout(
+                    stackVertically = metrics.shouldStackTightPairs,
+                    horizontalSpacing = 12.dp,
+                    verticalSpacing = 12.dp,
+                    first = { cardModifier ->
+                        FrostedGlassPanel(
+                            accentGlow = extended.accentCoral,
+                            modifier = cardModifier
                         ) {
                             Text(
-                                text = "$savingsRatePct% saved rate",
+                                text = "Monthly Spend",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = extended.mutedText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            CountUpCurrencyText(
+                                targetAmount = state.totalExpense,
+                                currencySymbol = symbol,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = cs.onSurface,
+                                compact = true
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            LinearProgressIndicator(
+                                progress = { animatedBudgetBar },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(50)),
+                                color = if (budgetRatio > 0.9f) extended.accentCoral else extended.accentMint,
+                                trackColor = cs.surfaceContainerHigh
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "${(budgetRatio * 100).roundToInt()}% of ${DateAndFormatUtils.formatCurrency(budget, symbol, compact = true)}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = extended.accentMint,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                color = extended.mutedText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
+                    },
+                    second = { cardModifier ->
+                        FrostedGlassPanel(
+                            accentGlow = extended.accentMint,
+                            modifier = cardModifier
+                        ) {
+                            Text(
+                                text = "Net Savings",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = extended.mutedText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            CountUpCurrencyText(
+                                targetAmount = state.netBalance.coerceAtLeast(0.0),
+                                currencySymbol = symbol,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = extended.accentMint,
+                                compact = true
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = extended.accentMint.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    text = "$savingsRatePct% saved rate",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = extended.accentMint,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
-                }
+                )
             }
 
             // Money Score + Habit Ring Glass Pair
             item(key = "score_and_habits") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    FrostedGlassPanel(
-                        accentGlow = extended.accentCyan,
-                        onClick = onNavigateMoneyScore,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("dashboard_money_score_card")
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                AdaptivePairLayout(
+                    stackVertically = metrics.shouldStackTightPairs,
+                    horizontalSpacing = 12.dp,
+                    verticalSpacing = 12.dp,
+                    first = { cardModifier ->
+                        FrostedGlassPanel(
+                            accentGlow = extended.accentCyan,
+                            onClick = onNavigateMoneyScore,
+                            modifier = cardModifier.testTag("dashboard_money_score_card")
                         ) {
-                            Text(
-                                text = "Money Score",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = extended.mutedText
-                            )
-                            Icon(
-                                imageVector = Icons.Rounded.Speed,
-                                contentDescription = null,
-                                tint = extended.accentCyan,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ProgressRing(
-                                progress = state.moneyScore.totalScore / 100f,
-                                color = extended.accentCyan,
-                                strokeWidth = 7.dp,
-                                size = 54.dp
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${state.moneyScore.totalScore}",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    fontWeight = FontWeight.Bold,
-                                    color = cs.onSurface
+                                    text = "Money Score",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = extended.mutedText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Rounded.Speed,
+                                    contentDescription = null,
+                                    tint = extended.accentCyan,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = state.moneyScore.tierLabel,
-                                    style = MaterialTheme.typography.titleMedium,
+                            Spacer(Modifier.height(12.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ProgressRing(
+                                    progress = state.moneyScore.totalScore / 100f,
                                     color = extended.accentCyan,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Holo index",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = extended.mutedText
-                                )
+                                    strokeWidth = 7.dp,
+                                    size = 54.dp
+                                ) {
+                                    Text(
+                                        text = "${state.moneyScore.totalScore}",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontFamily = JetBrainsMonoFontFamily
+                                        ),
+                                        fontWeight = FontWeight.Bold,
+                                        color = cs.onSurface,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = state.moneyScore.tierLabel,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = extended.accentCyan,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Holo index",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = extended.mutedText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
-                    }
-
-                    FrostedGlassPanel(
-                        accentGlow = extended.accentLime,
-                        onClick = onNavigateHabits,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("dashboard_habits_card")
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    },
+                    second = { cardModifier ->
+                        FrostedGlassPanel(
+                            accentGlow = extended.accentLime,
+                            onClick = onNavigateHabits,
+                            modifier = cardModifier.testTag("dashboard_habits_card")
                         ) {
-                            Text(
-                                text = "Habit Rings",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = extended.mutedText
-                            )
-                            Icon(
-                                imageVector = Icons.Rounded.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = extended.accentAmber,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ProgressRing(
-                                progress = habitProgress,
-                                color = extended.accentLime,
-                                strokeWidth = 7.dp,
-                                size = 54.dp
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "$doneHabitsToday/${state.habits.size}",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontFamily = JetBrainsMonoFontFamily
-                                    ),
-                                    color = cs.onSurface
+                                    text = "Habit Rings",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = extended.mutedText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Rounded.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = extended.accentAmber,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "${bestStreak}d Streak",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = extended.accentAmber,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "CyberFit",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = extended.mutedText
-                                )
+                            Spacer(Modifier.height(12.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ProgressRing(
+                                    progress = habitProgress,
+                                    color = extended.accentLime,
+                                    strokeWidth = 7.dp,
+                                    size = 54.dp
+                                ) {
+                                    Text(
+                                        text = "$doneHabitsToday/${state.habits.size}",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontFamily = JetBrainsMonoFontFamily
+                                        ),
+                                        color = cs.onSurface,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${bestStreak}d Streak",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = extended.accentAmber,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "CyberFit",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = extended.mutedText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
-                }
+                )
             }
 
             // Pinned Goal Card with Favorite Toggle
@@ -663,7 +718,9 @@ fun DashboardScreen(
                             Text(
                                 text = topGoal?.title ?: "Launch your first savings goal",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = cs.onSurface
+                                color = cs.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         FavoriteToggleIcon(
@@ -688,22 +745,50 @@ fun DashboardScreen(
                             trackColor = cs.surfaceContainerHigh
                         )
                         Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${DateAndFormatUtils.formatCurrency(topGoal.savedAmount, symbol)} saved",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = extended.mutedText
-                            )
-                            Text(
-                                text = "${(topGoal.progressFraction * 100).roundToInt()}% of ${DateAndFormatUtils.formatCurrency(topGoal.targetAmount, symbol)}",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontFamily = JetBrainsMonoFontFamily
-                                ),
-                                color = extended.accentViolet
-                            )
+                        if (metrics.shouldStackTightPairs) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "${DateAndFormatUtils.formatCurrency(topGoal.savedAmount, symbol)} saved",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = extended.mutedText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${(topGoal.progressFraction * 100).roundToInt()}% of ${DateAndFormatUtils.formatCurrency(topGoal.targetAmount, symbol)}",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontFamily = JetBrainsMonoFontFamily
+                                    ),
+                                    color = extended.accentViolet,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${DateAndFormatUtils.formatCurrency(topGoal.savedAmount, symbol)} saved",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = extended.mutedText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "${(topGoal.progressFraction * 100).roundToInt()}% of ${DateAndFormatUtils.formatCurrency(topGoal.targetAmount, symbol)}",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontFamily = JetBrainsMonoFontFamily
+                                    ),
+                                    color = extended.accentViolet,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     } else {
                         Text(
@@ -728,7 +813,10 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
@@ -743,20 +831,25 @@ fun DashboardScreen(
                                 )
                             }
                             Spacer(Modifier.width(12.dp))
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Level ${state.playerLevel} • ${state.totalXp} XP",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = cs.onSurface,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${state.achievements.count { it.unlocked }} of ${state.achievements.size} holographic badges unlocked",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = extended.mutedText
+                                    color = extended.mutedText,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
+                        Spacer(Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Rounded.CheckCircle,
                             contentDescription = null,
@@ -805,18 +898,22 @@ private fun BalanceDeltaChip(
                 modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = amount,
                     style = MaterialTheme.typography.titleSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                     color = accent,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
