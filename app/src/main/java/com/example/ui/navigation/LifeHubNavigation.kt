@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -122,6 +123,7 @@ fun LifeHubMainShell(
     currentUserId: String,
     onSwitchToTripSplit: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     val viewModel: LifeHubViewModel = viewModel(
         key = currentUserId,
         factory = viewModelFactory {
@@ -481,7 +483,7 @@ fun LifeHubMainShell(
                                     onShowMessage = { msg ->
                                         scope.launch { snackbarHostState.showSnackbar(msg) }
                                     },
-                                    onBeforeSignOut = { viewModel.clearCachesOnSignOut() }
+                                    onBeforeSignOut = { viewModel.wipeLocalDataOnSignOut(context) }
                                 )
                             }
                         }

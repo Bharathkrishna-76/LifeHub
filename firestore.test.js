@@ -357,3 +357,192 @@ test("Profile, Habits, Goals, Tasks, Reminders, Achievements, Settings: full CRU
       .update({ savedAmount: 0, updatedAt: pastDate(1000) })
   );
 });
+
+test("Hardened rules: anonymous auth blocked, singleton docIds enforced, invalid URLs/hex/enums/bounds/tampering denied", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const anonDb = testEnv
+    .authenticatedContext("anon_user_999", {
+      firebase: { sign_in_provider: "anonymous" },
+    })
+    .firestore();
+  const now = pastDate(8000);
+
+  // 1. Anonymous auth token must be rejected even on its own UID path
+  await assertFails(
+    anonDb
+      .collection("users")
+      .doc("anon_user_999")
+      .collection("profile")
+      .doc("main")
+      .set({
+        userId: "anon_user_999",
+        displayName: "Anon",
+        monthlyBudget: 1000,
+        currencySymbol: "₹",
+        totalXp: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 2. Arbitrary docId under profile/ or settings/ is rejected (only 'main' / 'preferences' allowed)
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("profile")
+      .doc("fake_admin_profile")
+      .set({
+        userId: ALICE_UID,
+        displayName: "Spoof",
+        monthlyBudget: 1000,
+        currencySymbol: "₹",
+        totalXp: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("settings")
+      .doc("evil_settings")
+      .set({
+        userId: ALICE_UID,
+        themeMode: "DARK",
+        notificationsEnabled: true,
+        currencySymbol: "₹",
+        monthlyBudget: 1000,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 3. Non-HTTPS photoUrl (e.g., javascript: or http:) is rejected
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("profile")
+      .doc("main")
+      .set({
+        userId: ALICE_UID,
+        displayName: "Aarav",
+        photoUrl: "javascript:alert(1)",
+        monthlyBudget: 1000,
+        currencySymbol: "₹",
+        totalXp: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 4. Role escalation / ghost field injection on profile is rejected
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("profile")
+      .doc("main")
+      .set({
+        userId: ALICE_UID,
+        displayName: "Aarav",
+        role: "ADMIN",
+        monthlyBudget: 1000,
+        currencySymbol: "₹",
+        totalXp: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 5. Invalid habit hex color and impossible streak (currentStreak > longestStreak) rejected
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("habits")
+      .doc("hab_bad_color")
+      .set({
+        userId: ALICE_UID,
+        title: "Read",
+        iconKey: "book",
+        colorHex: "not-a-hex",
+        targetDaysPerWeek: 5,
+        currentStreak: 1,
+        longestStreak: 1,
+        completedDates: [],
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("habits")
+      .doc("hab_bad_streak")
+      .set({
+        userId: ALICE_UID,
+        title: "Read",
+        iconKey: "book",
+        colorHex: "#00F5A0",
+        targetDaysPerWeek: 5,
+        currentStreak: 10,
+        longestStreak: 5,
+        completedDates: [],
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 6. Invalid goal category enum rejected
+  await assertFails(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .collection("goals")
+      .doc("goal_bad_cat")
+      .set({
+        userId: ALICE_UID,
+        title: "Hacked Goal",
+        category: "ADMIN_OVERRIDE",
+        targetAmount: 1000,
+        savedAmount: 0,
+        completed: false,
+        targetMonth: "2027-01",
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
+
+  // 7. Unlocked achievement cannot have xpAwarded inflated via update
+  const achRef = aliceDb
+    .collection("users")
+    .doc(ALICE_UID)
+    .collection("achievements")
+    .doc("first_expense");
+  await assertSucceeds(
+    achRef.set({
+      userId: ALICE_UID,
+      code: "first_expense",
+      xpAwarded: 100,
+      unlocked: true,
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+  await assertFails(
+    achRef.update({
+      xpAwarded: 9999,
+      unlocked: true,
+      updatedAt: pastDate(1000),
+    })
+  );
+
+  // 8. Arbitrary top-level collection access is denied by default
+  await assertFails(aliceDb.collection("admin_config").doc("keys").get());
+  await assertFails(aliceDb.collection("admin_config").doc("keys").set({ hack: true }));
+});
+

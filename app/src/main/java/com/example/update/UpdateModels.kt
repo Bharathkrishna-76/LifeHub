@@ -9,6 +9,7 @@ object RemoteUpdateKeys {
     const val LATEST_VERSION_CODE = "latest_version_code"
     const val LATEST_VERSION_NAME = "latest_version_name"
     const val APK_DOWNLOAD_URL = "apk_download_url"
+    const val APK_SHA256 = "apk_sha256"
     const val RELEASE_NOTES = "release_notes"
     const val UPDATE_ENABLED = "update_enabled"
     const val MINIMUM_VERSION_CODE = "minimum_version_code"
@@ -22,6 +23,7 @@ data class RemoteUpdateConfig(
     val latestVersionCode: Long = 1L,
     val latestVersionName: String = "1.0.0",
     val apkDownloadUrl: String = "",
+    val apkSha256: String = "",
     val releaseNotes: String = "",
     val updateEnabled: Boolean = false,
     val minimumVersionCode: Long = 1L,

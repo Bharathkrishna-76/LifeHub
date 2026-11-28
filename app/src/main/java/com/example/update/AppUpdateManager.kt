@@ -94,6 +94,7 @@ class AppUpdateManager(context: Context) {
                         RemoteUpdateKeys.LATEST_VERSION_CODE to installedVersionCode,
                         RemoteUpdateKeys.LATEST_VERSION_NAME to installedVersionName,
                         RemoteUpdateKeys.APK_DOWNLOAD_URL to "",
+                        RemoteUpdateKeys.APK_SHA256 to "",
                         RemoteUpdateKeys.RELEASE_NOTES to "",
                         RemoteUpdateKeys.UPDATE_ENABLED to false,
                         RemoteUpdateKeys.MINIMUM_VERSION_CODE to 1L
@@ -230,12 +231,14 @@ class AppUpdateManager(context: Context) {
                 }
 
                 RemoteUpdateConfig(
-                    latestVersionCode = rc.getLong(RemoteUpdateKeys.LATEST_VERSION_CODE),
+                    latestVersionCode = rc.getLong(RemoteUpdateKeys.LATEST_VERSION_CODE).coerceAtLeast(1L),
                     latestVersionName = rc.getString(RemoteUpdateKeys.LATEST_VERSION_NAME)
                         .trim()
+                        .take(32)
                         .ifEmpty { installedVersionName },
-                    apkDownloadUrl = rc.getString(RemoteUpdateKeys.APK_DOWNLOAD_URL).trim(),
-                    releaseNotes = rc.getString(RemoteUpdateKeys.RELEASE_NOTES).trim(),
+                    apkDownloadUrl = rc.getString(RemoteUpdateKeys.APK_DOWNLOAD_URL).trim().take(512),
+                    apkSha256 = rc.getString(RemoteUpdateKeys.APK_SHA256).trim().take(64),
+                    releaseNotes = rc.getString(RemoteUpdateKeys.RELEASE_NOTES).trim().take(1500),
                     updateEnabled = rc.getBoolean(RemoteUpdateKeys.UPDATE_ENABLED),
                     minimumVersionCode = rc.getLong(RemoteUpdateKeys.MINIMUM_VERSION_CODE).coerceAtLeast(1L),
                     fetchedAtEpochMs = System.currentTimeMillis()
@@ -281,7 +284,7 @@ class AppUpdateManager(context: Context) {
 
         // Check if we already have a verified APK downloaded for this version
         val existingApk = withContext(Dispatchers.IO) {
-            findAlreadyVerifiedApk(config.latestVersionCode)
+            findAlreadyVerifiedApk(config.latestVersionCode, config.apkSha256)
         }
         val initialPhase = if (existingApk != null) {
             UpdatePhase.ReadyToInstall(existingApk)
@@ -318,7 +321,7 @@ class AppUpdateManager(context: Context) {
         }
     }
 
-    private fun findAlreadyVerifiedApk(targetVersionCode: Long): File? {
+    private fun findAlreadyVerifiedApk(targetVersionCode: Long, expectedSha256: String): File? {
         val candidate = File(
             ApkSecurityVerifier.getUpdatesDirectory(appContext),
             "lifehub-update-$targetVersionCode.apk"
@@ -327,15 +330,12 @@ class AppUpdateManager(context: Context) {
         val verification = ApkSecurityVerifier.verifyDownloadedApk(
             context = appContext,
             apkFile = candidate,
-            installedVersionCode = installedVersionCode
+            installedVersionCode = installedVersionCode,
+            expectedSha256 = expectedSha256,
+            expectedMinVersionCode = targetVersionCode
         )
         return when (verification) {
-            is ApkVerificationResult.Verified -> {
-                if (verification.versionCode >= targetVersionCode) candidate else {
-                    candidate.delete()
-                    null
-                }
-            }
+            is ApkVerificationResult.Verified -> candidate
             is ApkVerificationResult.Rejected -> {
                 candidate.delete()
                 null
@@ -384,7 +384,9 @@ class AppUpdateManager(context: Context) {
                         ApkSecurityVerifier.verifyDownloadedApk(
                             context = appContext,
                             apkFile = downloadResult.apkFile,
-                            installedVersionCode = installedVersionCode
+                            installedVersionCode = installedVersionCode,
+                            expectedSha256 = config.apkSha256,
+                            expectedMinVersionCode = config.latestVersionCode
                         )
                     }
 
@@ -424,10 +426,17 @@ class AppUpdateManager(context: Context) {
             return
         }
 
+        val activeConfig = _uiState.value.config
         // Re-verify before launching Android's installer in case cache was cleared or modified
         scope.launch {
             val verification = withContext(Dispatchers.IO) {
-                ApkSecurityVerifier.verifyDownloadedApk(appContext, apkFile, installedVersionCode)
+                ApkSecurityVerifier.verifyDownloadedApk(
+                    context = appContext,
+                    apkFile = apkFile,
+                    installedVersionCode = installedVersionCode,
+                    expectedSha256 = activeConfig?.apkSha256.orEmpty(),
+                    expectedMinVersionCode = activeConfig?.latestVersionCode
+                )
             }
             if (verification is ApkVerificationResult.Rejected) {
                 withContext(Dispatchers.IO) { apkFile.delete() }

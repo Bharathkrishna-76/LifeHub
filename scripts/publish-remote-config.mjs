@@ -113,7 +113,19 @@ function validateDownloadUrl(url) {
   if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "github.com") {
     throw new Error("APK_DOWNLOAD_URL must use https://github.com/...");
   }
+  if (parsed.username || parsed.password || (parsed.port && parsed.port !== "443")) {
+    throw new Error("APK_DOWNLOAD_URL must not contain credentials or non-standard ports.");
+  }
   const lowerPath = parsed.pathname.toLowerCase();
+  if (lowerPath.includes("..") || lowerPath.includes("\\")) {
+    throw new Error("APK_DOWNLOAD_URL contains an unsafe path.");
+  }
+  const expectedRepo = (process.env.GITHUB_REPOSITORY || "").trim().toLowerCase();
+  if (expectedRepo && !lowerPath.startsWith(`/${expectedRepo}/releases/download/`)) {
+    throw new Error(
+      `APK_DOWNLOAD_URL must point to this repository (/${expectedRepo}/releases/download/...).`
+    );
+  }
   if (!lowerPath.includes("/releases/download/") || !lowerPath.endsWith(".apk")) {
     throw new Error("APK_DOWNLOAD_URL must point to a GitHub Releases .apk asset.");
   }
@@ -159,8 +171,13 @@ async function main() {
   const apkDownloadUrl = (process.env.APK_DOWNLOAD_URL || "").trim();
   validateDownloadUrl(apkDownloadUrl);
 
+  const apkSha256 = (process.env.APK_SHA256 || "").trim().toLowerCase();
+  if (apkSha256 && !/^[0-9a-f]{64}$/.test(apkSha256)) {
+    throw new Error("APK_SHA256 must be a valid 64-character lowercase hexadecimal SHA-256 digest.");
+  }
+
   const releaseNotes =
-    (process.env.RELEASE_NOTES || "").trim() ||
+    (process.env.RELEASE_NOTES || "").trim().slice(0, 1500) ||
     `Version ${latestVersionName} improvements and bug fixes.`;
   const updateEnabled =
     (process.env.UPDATE_ENABLED || "true").trim().toLowerCase() === "true";
@@ -217,6 +234,11 @@ async function main() {
   template.parameters.apk_download_url = {
     defaultValue: { value: apkDownloadUrl },
     description: "Direct HTTPS GitHub Releases .apk asset URL.",
+    valueType: "STRING",
+  };
+  template.parameters.apk_sha256 = {
+    defaultValue: { value: apkSha256 },
+    description: "Optional lowercase 64-char SHA-256 digest of the official release APK.",
     valueType: "STRING",
   };
   template.parameters.release_notes = {

@@ -9,11 +9,14 @@ service cloud.firestore {
 
     // --- GLOBAL PRIMITIVES ---
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null &&
+             (!('firebase' in request.auth.token) ||
+              !('sign_in_provider' in request.auth.token.firebase) ||
+              request.auth.token.firebase.sign_in_provider != 'anonymous');
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && isValidId(userId) && request.auth.uid == userId;
     }
 
     function isValidId(id) {
@@ -37,7 +40,11 @@ service cloud.firestore {
       return data.userId == userId &&
              data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
              (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
-             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             (!('photoUrl' in data) || (
+               data.photoUrl is string &&
+               data.photoUrl.size() <= 500 &&
+               (data.photoUrl == '' || data.photoUrl.matches('^https://.*'))
+             )) &&
              data.monthlyBudget is number && data.monthlyBudget >= 0 && data.monthlyBudget <= 1000000000 &&
              data.currencySymbol is string && data.currencySymbol.size() >= 1 && data.currencySymbol.size() <= 4 &&
              data.totalXp is int && data.totalXp >= 0 && data.totalXp <= 10000000 &&
@@ -55,7 +62,7 @@ service cloud.firestore {
                'HEALTH', 'EDUCATION', 'OTHERS', 'SALARY', 'FREELANCE', 'INVESTMENT'
              ] &&
              data.monthKey is string && data.monthKey.size() == 7 && data.monthKey.matches('^[0-9]{4}-[0-9]{2}$') &&
-             data.timestampEpochMs is int && data.timestampEpochMs > 0 &&
+             data.timestampEpochMs is int && data.timestampEpochMs > 0 && data.timestampEpochMs <= 4102444800000 &&
              (!('note' in data) || (data.note is string && data.note.size() <= 240)) &&
              (!('isTripOrEvent' in data) || data.isTripOrEvent is bool) &&
              (!('eventName' in data) || (data.eventName is string && data.eventName.size() <= 60)) &&
@@ -67,12 +74,13 @@ service cloud.firestore {
       return data.userId == userId &&
              data.title is string && data.title.size() >= 1 && data.title.size() <= 60 &&
              data.iconKey is string && data.iconKey.size() >= 1 && data.iconKey.size() <= 30 &&
-             data.colorHex is string && data.colorHex.size() >= 4 && data.colorHex.size() <= 12 &&
+             data.colorHex is string && data.colorHex.matches('^#[0-9a-fA-F]{6,8}$') &&
              data.targetDaysPerWeek is int && data.targetDaysPerWeek >= 1 && data.targetDaysPerWeek <= 7 &&
              data.currentStreak is int && data.currentStreak >= 0 && data.currentStreak <= 10000 &&
              data.longestStreak is int && data.longestStreak >= 0 && data.longestStreak <= 10000 &&
+             data.currentStreak <= data.longestStreak &&
              data.completedDates is list && data.completedDates.size() <= 366 &&
-             (data.completedDates.size() == 0 || data.completedDates[0] is string) &&
+             (data.completedDates.size() == 0 || (data.completedDates[0] is string && data.completedDates[0].size() <= 16)) &&
              isValidTimestamp(data.createdAt) &&
              isValidTimestamp(data.updatedAt);
     }
@@ -80,7 +88,7 @@ service cloud.firestore {
     function isValidGoal(data, userId) {
       return data.userId == userId &&
              data.title is string && data.title.size() >= 1 && data.title.size() <= 60 &&
-             data.category is string && data.category.size() >= 1 && data.category.size() <= 30 &&
+             data.category is string && data.category in ['PHONE', 'VACATION', 'LAPTOP', 'BIKE', 'EMERGENCY', 'CUSTOM'] &&
              data.targetAmount is number && data.targetAmount > 0 && data.targetAmount <= 1000000000 &&
              data.savedAmount is number && data.savedAmount >= 0 && data.savedAmount <= 1000000000 &&
              data.completed is bool &&
@@ -95,7 +103,7 @@ service cloud.firestore {
              data.cadence is string && data.cadence in ['DAILY', 'WEEKLY'] &&
              data.priority is string && data.priority in ['HIGH', 'MEDIUM', 'LOW'] &&
              data.status is string && data.status in ['TODO', 'IN_PROGRESS', 'DONE'] &&
-             data.dueDateEpochMs is int && data.dueDateEpochMs >= 0 &&
+             data.dueDateEpochMs is int && data.dueDateEpochMs >= 0 && data.dueDateEpochMs <= 4102444800000 &&
              data.recurring is bool &&
              (!('notes' in data) || (data.notes is string && data.notes.size() <= 300)) &&
              isValidTimestamp(data.createdAt) &&
@@ -107,7 +115,7 @@ service cloud.firestore {
              data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
              data.category is string && data.category in ['BILL', 'EMI', 'RENT', 'SUBSCRIPTION'] &&
              data.amount is number && data.amount >= 0 && data.amount <= 100000000 &&
-             data.dueDateEpochMs is int && data.dueDateEpochMs > 0 &&
+             data.dueDateEpochMs is int && data.dueDateEpochMs > 0 && data.dueDateEpochMs <= 4102444800000 &&
              data.recurringMonthly is bool &&
              data.paid is bool &&
              isValidTimestamp(data.createdAt) &&
@@ -116,7 +124,7 @@ service cloud.firestore {
 
     function isValidAchievement(data, userId) {
       return data.userId == userId &&
-             data.code is string && data.code.size() >= 1 && data.code.size() <= 40 &&
+             data.code is string && data.code.size() >= 1 && data.code.size() <= 40 && data.code.matches('^[a-zA-Z0-9_\\-]+$') &&
              data.xpAwarded is int && data.xpAwarded >= 0 && data.xpAwarded <= 10000 &&
              data.unlocked is bool &&
              isValidTimestamp(data.createdAt) &&
@@ -137,24 +145,24 @@ service cloud.firestore {
     // --- USER-SCOPED COLLECTIONS ---
     match /users/{userId} {
 
-      // 1. Profile
+      // 1. Profile (singleton document 'main' prevents arbitrary document spam)
       match /profile/{docId} {
-        allow get: if isOwner(userId) && isValidId(docId);
+        allow get: if isOwner(userId) && docId == 'main';
         allow list: if isOwner(userId);
         allow create: if isOwner(userId) &&
-                         isValidId(docId) &&
+                         docId == 'main' &&
                          incoming().keys().hasAll(['userId', 'displayName', 'monthlyBudget', 'currencySymbol', 'totalXp', 'createdAt', 'updatedAt']) &&
                          incoming().keys().hasOnly(['userId', 'displayName', 'email', 'photoUrl', 'monthlyBudget', 'currencySymbol', 'totalXp', 'createdAt', 'updatedAt']) &&
                          isValidProfile(incoming(), userId);
         allow update: if isOwner(userId) &&
-                         isValidId(docId) &&
+                         docId == 'main' &&
                          isValidProfile(incoming(), userId) &&
                          incoming().userId == existing().userId &&
                          incoming().createdAt == existing().createdAt &&
                          incoming().diff(existing()).affectedKeys().hasOnly([
                            'displayName', 'email', 'photoUrl', 'monthlyBudget', 'currencySymbol', 'totalXp', 'updatedAt'
                          ]);
-        allow delete: if isOwner(userId) && isValidId(docId);
+        allow delete: if isOwner(userId) && docId == 'main';
       }
 
       // 2. Transactions
@@ -257,7 +265,7 @@ service cloud.firestore {
         allow delete: if isOwner(userId) && isValidId(reminderId);
       }
 
-      // 7. Achievements
+      // 7. Achievements (terminal unlock lock prevents XP inflation on unlocked achievements)
       match /achievements/{achievementId} {
         allow get: if isOwner(userId) && isValidId(achievementId);
         allow list: if isOwner(userId);
@@ -272,30 +280,31 @@ service cloud.firestore {
                          incoming().userId == existing().userId &&
                          incoming().code == existing().code &&
                          incoming().createdAt == existing().createdAt &&
+                         (!existing().unlocked || (incoming().unlocked == true && incoming().xpAwarded == existing().xpAwarded)) &&
                          incoming().diff(existing()).affectedKeys().hasOnly([
                            'xpAwarded', 'unlocked', 'updatedAt'
                          ]);
         allow delete: if isOwner(userId) && isValidId(achievementId);
       }
 
-      // 8. Settings
+      // 8. Settings (singleton document 'preferences' prevents arbitrary document spam)
       match /settings/{docId} {
-        allow get: if isOwner(userId) && isValidId(docId);
+        allow get: if isOwner(userId) && docId == 'preferences';
         allow list: if isOwner(userId);
         allow create: if isOwner(userId) &&
-                         isValidId(docId) &&
+                         docId == 'preferences' &&
                          incoming().keys().hasAll(['userId', 'themeMode', 'notificationsEnabled', 'currencySymbol', 'monthlyBudget', 'createdAt', 'updatedAt']) &&
                          incoming().keys().hasOnly(['userId', 'themeMode', 'notificationsEnabled', 'currencySymbol', 'monthlyBudget', 'separateTripEventLedger', 'createdAt', 'updatedAt']) &&
                          isValidSettings(incoming(), userId);
         allow update: if isOwner(userId) &&
-                         isValidId(docId) &&
+                         docId == 'preferences' &&
                          isValidSettings(incoming(), userId) &&
                          incoming().userId == existing().userId &&
                          incoming().createdAt == existing().createdAt &&
                          incoming().diff(existing()).affectedKeys().hasOnly([
                            'themeMode', 'notificationsEnabled', 'currencySymbol', 'monthlyBudget', 'separateTripEventLedger', 'updatedAt'
                          ]);
-        allow delete: if isOwner(userId) && isValidId(docId);
+        allow delete: if isOwner(userId) && docId == 'preferences';
       }
     }
   }

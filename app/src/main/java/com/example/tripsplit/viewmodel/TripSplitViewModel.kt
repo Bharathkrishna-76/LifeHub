@@ -205,16 +205,19 @@ class TripSplitViewModel(
         travelerNames: List<String>,
         initialWalletDeposit: Double
     ) {
-        val cleanTitle = title.trim().ifEmpty { destination.trim().ifEmpty { "New Trip" } }
-        val cleanDest = destination.trim().ifEmpty { cleanTitle }
-        val cleanOrigin = origin.trim().ifEmpty { "Home Base" }
+        val cleanTitle = title.trim().take(80).ifEmpty { destination.trim().take(80).ifEmpty { "New Trip" } }
+        val cleanDest = destination.trim().take(80).ifEmpty { cleanTitle }
+        val cleanOrigin = origin.trim().take(80).ifEmpty { "Home Base" }
+        val safeBudget = if (totalBudget.isFinite()) totalBudget.coerceIn(0.0, 100_000_000.0) else 0.0
+        val safeDeposit = if (initialWalletDeposit.isFinite()) initialWalletDeposit.coerceIn(0.0, 100_000_000.0) else 0.0
         val tripId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
 
         val cleanedTravelers = travelerNames
-            .map { it.trim() }
+            .map { it.trim().take(50) }
             .filter { it.isNotEmpty() }
             .distinctBy { it.lowercase() }
+            .take(50)
             .ifEmpty { listOf("You") }
 
         val trip = Trip(
@@ -222,12 +225,12 @@ class TripSplitViewModel(
             title = cleanTitle,
             destination = cleanDest,
             origin = cleanOrigin,
-            startDateLabel = startDateLabel.trim().ifEmpty { "Flexible" },
-            endDateLabel = endDateLabel.trim().ifEmpty { "Open" },
-            totalBudget = totalBudget.coerceAtLeast(0.0),
-            currencySymbol = currencySymbol.ifBlank { "₹" },
+            startDateLabel = startDateLabel.trim().take(32).ifEmpty { "Flexible" },
+            endDateLabel = endDateLabel.trim().take(32).ifEmpty { "Open" },
+            totalBudget = safeBudget,
+            currencySymbol = currencySymbol.trim().take(4).ifBlank { "₹" },
             cover = cover,
-            waypoints = waypoints.map { it.trim() }.filter { it.isNotEmpty() },
+            waypoints = waypoints.map { it.trim().take(60) }.filter { it.isNotEmpty() }.take(20),
             createdAt = now
         )
 
@@ -243,11 +246,11 @@ class TripSplitViewModel(
 
         viewModelScope.launch {
             repository.createTripWithMembers(trip, members)
-            if (initialWalletDeposit > 0.0 && members.isNotEmpty()) {
-                val perMember = DebtSimplifier.round2(initialWalletDeposit / members.size)
+            if (safeDeposit > 0.0 && members.isNotEmpty()) {
+                val perMember = DebtSimplifier.round2(safeDeposit / members.size)
                 members.forEachIndexed { idx, member ->
                     val depositAmt = if (idx == 0) {
-                        DebtSimplifier.round2(initialWalletDeposit - perMember * (members.size - 1))
+                        DebtSimplifier.round2(safeDeposit - perMember * (members.size - 1))
                     } else {
                         perMember
                     }
@@ -283,8 +286,8 @@ class TripSplitViewModel(
 
     fun addTraveler(name: String) {
         val trip = uiState.value.activeTrip ?: return
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
+        val trimmed = name.trim().take(50)
+        if (trimmed.isEmpty() || uiState.value.members.size >= 50) return
         val existingCount = uiState.value.members.size
         val member = TripMember(
             id = UUID.randomUUID().toString(),
@@ -325,18 +328,19 @@ class TripSplitViewModel(
         locationNote: String
     ) {
         val trip = uiState.value.activeTrip ?: return
-        if (amount <= 0.0 || title.isBlank()) return
+        val cleanTitle = title.trim().take(80)
+        if (!amount.isFinite() || amount <= 0.0 || amount > 100_000_000.0 || cleanTitle.isBlank()) return
 
         val finalShares = if (shares.isEmpty()) {
             DebtSimplifier.buildEqualShares(amount, uiState.value.members.map { it.id })
         } else {
-            shares
+            shares.filter { it.amount.isFinite() && it.amount >= 0.0 }
         }
 
         val expense = TripExpense(
             id = existingId ?: UUID.randomUUID().toString(),
             tripId = trip.id,
-            title = title.trim(),
+            title = cleanTitle,
             amount = DebtSimplifier.round2(amount),
             category = category,
             paidByMemberId = if (paidFromWallet) null else paidByMemberId,
@@ -344,7 +348,7 @@ class TripSplitViewModel(
             splitMode = splitMode,
             shares = finalShares,
             dateMillis = System.currentTimeMillis(),
-            locationNote = locationNote.trim()
+            locationNote = locationNote.trim().take(120)
         )
         viewModelScope.launch {
             repository.upsertExpense(expense)
@@ -370,14 +374,14 @@ class TripSplitViewModel(
         note: String
     ) {
         val trip = uiState.value.activeTrip ?: return
-        if (amount <= 0.0) return
+        if (!amount.isFinite() || amount <= 0.0 || amount > 100_000_000.0) return
         val entry = WalletEntry(
             id = UUID.randomUUID().toString(),
             tripId = trip.id,
             memberId = memberId,
             amount = DebtSimplifier.round2(amount),
             type = type,
-            note = note.trim().ifEmpty { type.label },
+            note = note.trim().take(120).ifEmpty { type.label },
             createdAt = System.currentTimeMillis()
         )
         viewModelScope.launch {
@@ -404,14 +408,14 @@ class TripSplitViewModel(
         note: String = "Settled up"
     ) {
         val trip = uiState.value.activeTrip ?: return
-        if (amount <= 0.0 || fromMemberId == toMemberId) return
+        if (!amount.isFinite() || amount <= 0.0 || amount > 100_000_000.0 || fromMemberId == toMemberId) return
         val settlement = SettlementRecord(
             id = UUID.randomUUID().toString(),
             tripId = trip.id,
             fromMemberId = fromMemberId,
             toMemberId = toMemberId,
             amount = DebtSimplifier.round2(amount),
-            note = note.trim().ifEmpty { "Settled up" },
+            note = note.trim().take(120).ifEmpty { "Settled up" },
             createdAt = System.currentTimeMillis()
         )
         viewModelScope.launch {

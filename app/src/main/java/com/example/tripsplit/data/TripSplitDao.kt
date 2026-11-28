@@ -62,4 +62,28 @@ interface TripSplitDao {
 
     @Query("DELETE FROM ts_settlements WHERE id = :settlementId")
     suspend fun deleteSettlement(settlementId: String)
+
+    @Query("DELETE FROM ts_settlements")
+    suspend fun clearSettlements()
+
+    @Query("DELETE FROM ts_wallet_entries")
+    suspend fun clearWalletEntries()
+
+    @Query("DELETE FROM ts_expenses")
+    suspend fun clearExpenses()
+
+    @Query("DELETE FROM ts_members")
+    suspend fun clearMembers()
+
+    @Query("DELETE FROM ts_trips")
+    suspend fun clearTrips()
+
+    @androidx.room.Transaction
+    suspend fun clearAllData() {
+        clearSettlements()
+        clearWalletEntries()
+        clearExpenses()
+        clearMembers()
+        clearTrips()
+    }
 }

@@ -61,6 +61,13 @@ class TripSplitPreferences(context: Context) {
         _favoriteTripIds.value = current.toSet()
     }
 
+    fun clearAll() {
+        prefs.edit().clear().apply()
+        _appMode.value = AppMode.DAILY_EXPENSES
+        _activeTripId.value = null
+        _favoriteTripIds.value = emptySet()
+    }
+
     private fun readAppMode(): AppMode {
         val raw = prefs.getString(KEY_APP_MODE, AppMode.DAILY_EXPENSES.name)
         return AppMode.entries.firstOrNull { it.name == raw } ?: AppMode.DAILY_EXPENSES

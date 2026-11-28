@@ -1,7 +1,9 @@
 package com.example.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.remote.toUserSafeErrorMessage
 import com.example.data.repository.DuplicateWriteIgnoredException
 import com.example.data.repository.LifeHubRepository
 import com.example.domain.engine.AchievementEngine
@@ -433,7 +435,7 @@ class LifeHubViewModel(
             _syncFlags.value = _syncFlags.value.copy(
                 isSyncingMonth = false,
                 hasMoreTransactions = repository.hasMoreForMonth(_selectedMonthKey.value),
-                errorMessage = res.exceptionOrNull()?.localizedMessage,
+                errorMessage = toUserSafeErrorMessage(res.exceptionOrNull()),
                 snackbarMessage = if (res.isSuccess) "Full cloud reconciliation complete" else null
             )
         }
@@ -449,7 +451,7 @@ class LifeHubViewModel(
             _syncFlags.value = _syncFlags.value.copy(
                 isPaginating = false,
                 hasMoreTransactions = repository.hasMoreForMonth(monthKey),
-                errorMessage = result.exceptionOrNull()?.localizedMessage
+                errorMessage = toUserSafeErrorMessage(result.exceptionOrNull())
             )
         }
     }
@@ -557,7 +559,7 @@ class LifeHubViewModel(
                 syncNewlyUnlockedAchievements()
             } else if (res.exceptionOrNull() !is DuplicateWriteIgnoredException) {
                 _syncFlags.value = _syncFlags.value.copy(
-                    errorMessage = res.exceptionOrNull()?.localizedMessage
+                    errorMessage = toUserSafeErrorMessage(res.exceptionOrNull())
                 )
             }
         }
@@ -599,7 +601,9 @@ class LifeHubViewModel(
             val justCompleted = res.getOrNull() == true
             _syncFlags.value = _syncFlags.value.copy(
                 isSaving = false,
-                errorMessage = res.exceptionOrNull()?.takeIf { it !is DuplicateWriteIgnoredException }?.localizedMessage,
+                errorMessage = toUserSafeErrorMessage(
+                    res.exceptionOrNull()?.takeIf { it !is DuplicateWriteIgnoredException }
+                ),
                 snackbarMessage = if (res.isSuccess && !justCompleted) "Contribution added!" else null,
                 celebratedGoal = if (justCompleted) goal.copy(
                     savedAmount = goal.savedAmount + amount,
@@ -650,7 +654,7 @@ class LifeHubViewModel(
                 syncNewlyUnlockedAchievements()
             } else if (res.exceptionOrNull() != null && res.exceptionOrNull() !is DuplicateWriteIgnoredException) {
                 _syncFlags.value = _syncFlags.value.copy(
-                    errorMessage = res.exceptionOrNull()?.localizedMessage
+                    errorMessage = toUserSafeErrorMessage(res.exceptionOrNull())
                 )
             }
         }
@@ -758,6 +762,10 @@ class LifeHubViewModel(
         _syncFlags.value = _syncFlags.value.copy(errorMessage = null)
     }
 
+    suspend fun wipeLocalDataOnSignOut(context: Context) {
+        repository.wipeAllLocalAccountData(context)
+    }
+
     fun clearCachesOnSignOut() {
         repository.clearSessionCaches()
     }
@@ -827,7 +835,7 @@ class LifeHubViewModel(
         }
         _syncFlags.value = _syncFlags.value.copy(
             isSaving = false,
-            errorMessage = err?.localizedMessage,
+            errorMessage = toUserSafeErrorMessage(err),
             snackbarMessage = if (result.isSuccess) successMsg else null
         )
     }

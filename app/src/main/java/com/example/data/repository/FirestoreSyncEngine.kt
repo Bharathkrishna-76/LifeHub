@@ -231,6 +231,9 @@ internal class FirestoreSyncEngine(
      * Never syncs another user's records. Never triggers a read/download loop.
      */
     suspend fun flushPendingQueue(uid: String): Result<Int> = flushMutex.withLock {
+        if (auth.currentUser?.uid != uid) {
+            return@withLock Result.success(0)
+        }
         if (!networkMonitor.isCurrentlyOnline()) {
             return@withLock Result.success(0)
         }
@@ -369,6 +372,7 @@ internal class FirestoreSyncEngine(
         uid: String,
         forceRefresh: Boolean
     ): Result<Unit> = syncMutex.withLock {
+        if (auth.currentUser?.uid != uid) return@withLock Result.success(Unit)
         if (!networkMonitor.isCurrentlyOnline()) return@withLock Result.success(Unit)
         val now = System.currentTimeMillis()
         val meta = localDb.syncMetadataDao().get(uid, KEY_PROFILE_SETTINGS)
@@ -409,7 +413,7 @@ internal class FirestoreSyncEngine(
                 val user = auth.currentUser
                 val name = (user?.displayName?.takeIf { it.isNotBlank() } ?: "LifeHub Member").take(60)
                 val email = user?.email?.take(120)
-                val photo = user?.photoUrl?.toString()?.take(500)
+                val photo = user?.photoUrl?.toString()?.take(500)?.takeIf { it.startsWith("https://") }
                 val payload = mapOf(
                     "userId" to uid,
                     "displayName" to name,
@@ -486,6 +490,9 @@ internal class FirestoreSyncEngine(
         manualRefresh: Boolean = false,
         fullReconcile: Boolean = false
     ): Result<TransactionPageResult> = syncMutex.withLock {
+        if (auth.currentUser?.uid != uid) {
+            return@withLock Result.success(TransactionPageResult(0, false))
+        }
         if (!networkMonitor.isCurrentlyOnline()) {
             val meta = localDb.syncMetadataDao().get(uid, monthMetaKey(monthKey))
             return@withLock Result.success(TransactionPageResult(0, meta?.hasMore ?: false))
@@ -602,6 +609,9 @@ internal class FirestoreSyncEngine(
         uid: String,
         monthKey: String
     ): Result<TransactionPageResult> = syncMutex.withLock {
+        if (auth.currentUser?.uid != uid) {
+            return@withLock Result.success(TransactionPageResult(0, false))
+        }
         if (!networkMonitor.isCurrentlyOnline()) {
             return@withLock Result.success(TransactionPageResult(0, false))
         }
@@ -667,6 +677,7 @@ internal class FirestoreSyncEngine(
         manualRefresh: Boolean = false,
         fullReconcile: Boolean = false
     ): Result<Unit> = syncMutex.withLock {
+        if (auth.currentUser?.uid != uid) return@withLock Result.success(Unit)
         if (!networkMonitor.isCurrentlyOnline()) return@withLock Result.success(Unit)
         val now = System.currentTimeMillis()
         val meta = localDb.syncMetadataDao().get(uid, KEY_CORE_MODULES)

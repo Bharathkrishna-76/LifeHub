@@ -1,5 +1,7 @@
 package com.example.data.repository
 
+import android.content.Context
+import com.example.data.export.ExportAndShareHelper
 import com.example.data.local.AchievementEntity
 import com.example.data.local.HabitEntity
 import com.example.data.local.LifeHubDatabase
@@ -12,6 +14,8 @@ import com.example.data.remote.NetworkMonitor
 import com.example.data.remote.OperationType
 import com.example.data.remote.handleFirestoreError
 import com.example.data.worker.ReminderScheduler
+import com.example.tripsplit.data.TripSplitDatabase
+import com.example.tripsplit.data.TripSplitPreferences
 import com.example.domain.model.ExpenseCategory
 import com.example.domain.model.GoalPreset
 import com.example.domain.model.HabitItem
@@ -40,6 +44,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 data class TransactionPageResult(
@@ -243,7 +248,7 @@ class LifeHubRepository(
     ): Result<Unit> = withWriteGuard("tx_$clientDocId") {
         val cleanTitle = title.trim().take(80)
         if (cleanTitle.isBlank()) return@withWriteGuard Result.failure(IllegalArgumentException("Enter a title"))
-        if (amount <= 0.0 || amount > 100_000_000.0) {
+        if (!amount.isFinite() || amount <= 0.0 || amount > 100_000_000.0) {
             return@withWriteGuard Result.failure(IllegalArgumentException("Enter a valid amount"))
         }
 
@@ -320,7 +325,7 @@ class LifeHubRepository(
     ): Result<Unit> = withWriteGuard("edit_tx_${existing.id}") {
         val cleanTitle = title.trim().take(80)
         if (cleanTitle.isBlank()) return@withWriteGuard Result.failure(IllegalArgumentException("Enter a title"))
-        if (amount <= 0.0 || amount > 100_000_000.0) {
+        if (!amount.isFinite() || amount <= 0.0 || amount > 100_000_000.0) {
             return@withWriteGuard Result.failure(IllegalArgumentException("Enter a valid amount"))
         }
 
@@ -408,6 +413,7 @@ class LifeHubRepository(
         if (cleanTitle.isBlank()) return@withWriteGuard Result.failure(IllegalArgumentException("Enter habit name"))
         val docId = sanitizeDocId(clientDocId)
         val safeTarget = targetDaysPerWeek.coerceIn(1, 7)
+        val safeColor = sanitizeColorHex(colorHex)
         var docPath = "users/unauthenticated/habits/$docId"
         try {
             val uid = requireUserId()
@@ -417,8 +423,8 @@ class LifeHubRepository(
                     id = docId,
                     userId = uid,
                     title = cleanTitle,
-                    iconKey = iconKey.take(30),
-                    colorHex = colorHex.take(12),
+                    iconKey = iconKey.take(30).ifBlank { "check" },
+                    colorHex = safeColor,
                     targetDaysPerWeek = safeTarget,
                     currentStreak = 0,
                     longestStreak = 0,
@@ -428,8 +434,8 @@ class LifeHubRepository(
             val payload = mapOf<String, Any?>(
                 "userId" to uid,
                 "title" to cleanTitle,
-                "iconKey" to iconKey.take(30),
-                "colorHex" to colorHex.take(12),
+                "iconKey" to iconKey.take(30).ifBlank { "check" },
+                "colorHex" to safeColor,
                 "targetDaysPerWeek" to safeTarget.toLong(),
                 "currentStreak" to 0L,
                 "longestStreak" to 0L,
@@ -523,8 +529,10 @@ class LifeHubRepository(
     ): Result<Unit> = withWriteGuard("goal_$clientDocId") {
         val cleanTitle = title.trim().take(60)
         if (cleanTitle.isBlank()) return@withWriteGuard Result.failure(IllegalArgumentException("Enter goal title"))
-        if (targetAmount <= 0.0) return@withWriteGuard Result.failure(IllegalArgumentException("Target must be positive"))
-        val safeSaved = initialSaved.coerceAtLeast(0.0)
+        if (!targetAmount.isFinite() || targetAmount <= 0.0 || targetAmount > 1_000_000_000.0) {
+            return@withWriteGuard Result.failure(IllegalArgumentException("Target must be positive"))
+        }
+        val safeSaved = if (initialSaved.isFinite()) initialSaved.coerceIn(0.0, 1_000_000_000.0) else 0.0
         val completed = safeSaved >= targetAmount
         val docId = sanitizeDocId(clientDocId)
         val cleanTargetMonth = targetMonth.trim().take(20)
@@ -568,7 +576,7 @@ class LifeHubRepository(
         goal: SavingsGoalItem,
         contributionAmount: Double
     ): Result<Boolean> = withWriteGuard("contrib_${goal.id}_${contributionAmount}") {
-        if (contributionAmount <= 0.0) {
+        if (!contributionAmount.isFinite() || contributionAmount <= 0.0 || contributionAmount > 1_000_000_000.0) {
             return@withWriteGuard Result.failure(IllegalArgumentException("Contribution must be positive"))
         }
         var docPath = "users/unauthenticated/goals/${goal.id}"
@@ -745,7 +753,7 @@ class LifeHubRepository(
         val cleanTitle = title.trim().take(80)
         if (cleanTitle.isBlank()) return@withWriteGuard Result.failure(IllegalArgumentException("Enter reminder title"))
         val docId = sanitizeDocId(clientDocId)
-        val safeAmount = amount.coerceIn(0.0, 100_000_000.0)
+        val safeAmount = if (amount.isFinite()) amount.coerceIn(0.0, 100_000_000.0) else 0.0
         val safeDue = dueDateEpochMs.coerceAtLeast(System.currentTimeMillis() + 10_000L)
         var docPath = "users/unauthenticated/reminders/$docId"
         try {
@@ -973,6 +981,40 @@ class LifeHubRepository(
 
     fun clearSessionCaches() {
         syncEngine.clearMemoryCursors()
+    }
+
+    /**
+     * Completely wipes all account-specific local caches, Room databases (LifeHub + TripSplit),
+     * preferences, scheduled financial reminder notifications, and temporary export/share files.
+     * Prevents cross-account data exposure after logout or account switch.
+     */
+    suspend fun wipeAllLocalAccountData(context: Context) {
+        withContext(Dispatchers.IO) {
+            syncEngine.clearMemoryCursors()
+            reminderScheduler.cancelAllReminders()
+            runCatching { localDb.clearAllTables() }
+            runCatching { TripSplitDatabase.getInstance(context).tripSplitDao().clearAllData() }
+            runCatching { TripSplitPreferences.getInstance(context).clearAll() }
+            runCatching { preferencesManager.clearUserPreferences() }
+            ExportAndShareHelper.clearExportAndShareCaches(context)
+        }
+    }
+
+    /**
+     * Guarantees strict account isolation if the signed-in Firebase UID changes without a prior
+     * manual sign-out tap (e.g., OS credential switch or re-authentication under another account).
+     */
+    suspend fun ensureAccountIsolation(context: Context, currentUid: String) {
+        val lastUid = preferencesManager.getLastSignedInUid()
+        if (lastUid != null && lastUid != currentUid) {
+            wipeAllLocalAccountData(context)
+        }
+        preferencesManager.setLastSignedInUid(currentUid)
+    }
+
+    private fun sanitizeColorHex(raw: String): String {
+        val trimmed = raw.trim()
+        return if (Regex("^#[0-9a-fA-F]{6,8}$").matches(trimmed)) trimmed else "#00E59B"
     }
 
     private fun sanitizeDocId(raw: String): String {

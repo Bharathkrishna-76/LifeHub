@@ -16,6 +16,9 @@ interface ProfileDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(profile: UserProfileEntity)
+
+    @Query("DELETE FROM user_profiles WHERE userId = :userId")
+    suspend fun deleteProfile(userId: String)
 }
 
 @Dao

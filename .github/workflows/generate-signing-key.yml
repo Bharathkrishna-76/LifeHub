@@ -3,6 +3,9 @@ name: One-Time Generate Signing Keystore
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   generate-key:
     name: Generate Persistent Debug Signing Keystore
@@ -10,9 +13,11 @@ jobs:
 
     steps:
       - name: Ensure repository is private before generating key
+        env:
+          IS_PRIVATE: ${{ github.event.repository.private }}
         run: |
-          if [ "${{ github.event.repository.private }}" != "true" ]; then
-            echo "::error::For your security, this one-time keystore generator only runs while the repository is Private. Keep the repo Private until you save DEBUG_KEYSTORE_BASE64 and delete this run."
+          if [ "$IS_PRIVATE" != "true" ]; then
+            echo "::error::For your security, this one-time keystore generator only runs while the repository is Private. Keep the repo Private until you save the keystore secret and delete this run."
             exit 1
           fi
 
@@ -24,6 +29,7 @@ jobs:
 
       - name: Generate persistent PKCS12 signing keystore
         run: |
+          umask 077
           mkdir -p out
           keytool -genkeypair -v \
             -keystore out/debug.keystore \
@@ -42,7 +48,9 @@ jobs:
           SHA256_FP=$(keytool -list -v -keystore out/debug.keystore -storepass android -alias androiddebugkey | grep -m1 "SHA256:" | awk '{print $2}')
 
           {
-            echo "## Persistent Signing Keystore Ready"
+            echo "## Persistent Debug Signing Keystore Ready"
+            echo ""
+            echo "> **Production Security Notice:** This helper generates a debug-compatible keystore with the default Android debug password (\`android\`). For public APK or Google Play distribution, generate a dedicated release upload keystore offline on your own computer with a strong password and store it in \`KEYSTORE_BASE64\`, \`STORE_PASSWORD\`, and \`KEY_PASSWORD\` secrets instead."
             echo ""
             echo "### 1. Add these two fingerprints in Firebase Console"
             echo "Open Firebase Console -> Project Settings -> Your apps -> \`com.aistudio.lifehub.mzkpqr\` -> **+ Add fingerprint**:"
@@ -56,7 +64,7 @@ jobs:
             echo "3. Open **Settings -> Secrets and variables -> Actions -> New repository secret**:"
             echo "   - Name: \`DEBUG_KEYSTORE_BASE64\`"
             echo "   - Secret: paste the copied text"
-            echo "4. Delete this workflow run after saving the secret, then run **Build & Publish GitHub Release**."
+            echo "4. Immediately delete this workflow run and artifact after saving the secret."
           } >> "$GITHUB_STEP_SUMMARY"
 
           rm -f out/debug.keystore

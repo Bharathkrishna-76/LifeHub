@@ -105,7 +105,7 @@ fun ProfileScreen(
     onFullCloudResync: () -> Unit,
     onFetchTransactionsForExport: suspend () -> List<TransactionItem>,
     onShowMessage: (String) -> Unit,
-    onBeforeSignOut: () -> Unit
+    onBeforeSignOut: suspend () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -476,8 +476,11 @@ fun ProfileScreen(
             item(key = "sign_out") {
                 Button(
                     onClick = {
-                        onBeforeSignOut()
-                        signOutUser(credentialManager = credentialManager, scope = scope)
+                        signOutUser(
+                            credentialManager = credentialManager,
+                            scope = scope,
+                            onBeforeFirebaseSignOut = onBeforeSignOut
+                        )
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cs.errorContainer,

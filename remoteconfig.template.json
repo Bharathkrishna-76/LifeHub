@@ -21,6 +21,13 @@
       "description": "Direct HTTPS GitHub Releases .apk asset URL.",
       "valueType": "STRING"
     },
+    "apk_sha256": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Optional lowercase 64-char SHA-256 digest of the official release APK.",
+      "valueType": "STRING"
+    },
     "release_notes": {
       "defaultValue": {
         "value": "Bug fixes and performance improvements."

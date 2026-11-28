@@ -113,6 +113,10 @@ fun ReferAppCard(
     }
 
     fun openDownloadLink() {
+        if (!ApkSecurityVerifier.validateReferUrl(downloadUrl)) {
+            onShowMessage(noBrowserToast)
+            return
+        }
         val viewIntent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

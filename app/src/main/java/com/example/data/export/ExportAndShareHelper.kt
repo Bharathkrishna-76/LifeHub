@@ -126,6 +126,7 @@ object ExportAndShareHelper {
         )
 
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
+        pruneDirectory(dir)
         val file = File(dir, "lifehub_wrapped_${System.currentTimeMillis()}.png")
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 95, out)
@@ -148,12 +149,14 @@ object ExportAndShareHelper {
         currencySymbol: String
     ): Result<Unit> = runCatching {
         val dir = File(context.cacheDir, "exports").apply { mkdirs() }
+        pruneDirectory(dir)
         val file = File(dir, "lifehub_transactions_${System.currentTimeMillis()}.csv")
         val sb = StringBuilder()
-        sb.appendLine("Date,Month,Title,Type,Category,Amount ($currencySymbol),Note")
+        val safeHeaderCurrency = sanitizeCsvField(currencySymbol.take(4))
+        sb.appendLine("Date,Month,Title,Type,Category,\"Amount ($safeHeaderCurrency)\",Note")
         transactions.forEach { tx ->
-            val safeTitle = tx.title.replace("\"", "\"\"")
-            val safeNote = tx.note.replace("\"", "\"\"")
+            val safeTitle = sanitizeCsvField(tx.title)
+            val safeNote = sanitizeCsvField(tx.note)
             val dateStr = DateAndFormatUtils.dateKeyFromEpoch(tx.timestampEpochMs)
             sb.appendLine("$dateStr,${tx.monthKey},\"$safeTitle\",${tx.type.name},${tx.category.label},${tx.amount},\"$safeNote\"")
         }
@@ -167,5 +170,36 @@ object ExportAndShareHelper {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(Intent.createChooser(shareIntent, "Export LifeHub Data"))
+    }
+
+    /**
+     * Neutralizes spreadsheet formula injection (CSV injection) and flattens newlines before quoting.
+     */
+    fun sanitizeCsvField(raw: String): String {
+        val flattened = raw
+            .replace("\r\n", " ")
+            .replace("\n", " ")
+            .replace("\r", " ")
+        val neutralized = if (flattened.isNotEmpty() && flattened[0] in charArrayOf('=', '+', '-', '@', '\t')) {
+            "'$flattened"
+        } else {
+            flattened
+        }
+        return neutralized.replace("\"", "\"\"")
+    }
+
+    /**
+     * Deletes all temporary exported CSVs and shared Wrapped images on sign-out or account switch.
+     */
+    fun clearExportAndShareCaches(context: Context) {
+        runCatching { pruneDirectory(File(context.cacheDir, "exports")) }
+        runCatching { pruneDirectory(File(context.cacheDir, "shared")) }
+    }
+
+    private fun pruneDirectory(dir: File) {
+        if (!dir.exists() || !dir.isDirectory) return
+        dir.listFiles()?.forEach { child ->
+            runCatching { child.delete() }
+        }
     }
 }
